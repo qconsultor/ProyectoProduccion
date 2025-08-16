@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Kardex - {{ codigo_buscado }}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 20px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .header p {
+            margin: 5px 0 0;
+            font-size: 14px;
+        }
+        .info-section {
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .info-section h2 {
+            margin-top: 0;
+            font-size: 18px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 8px;
+        }
+        .info-grid dt {
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .text-end {
+            text-align: right;
+        }
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>EDITORIAL "NUEVO MUNDO"</h1>
+        <p>Reporte de Movimientos de Inventario (Kardex)</p>
+    </div>
+
+    <div class="info-section">
+        <h2>Información del Producto</h2>
+        <div class="info-grid">
+            <dt>Código:</dt>
+            <dd>{{ codigo_buscado }}</dd>
+            <dt>Producto:</dt>
+            <dd>{{ producto.nombre|default:"No encontrado" }}</dd>
+            <dt>Fecha del Reporte:</dt>
+            <dd>{% now "d/m/Y" %}</dd>
+            <dt>Rango de Fechas:</dt>
+            <dd>{{ fecha_desde_valor|default:"N/A" }} - {{ fecha_hasta_valor|default:"N/A" }}</dd>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h2>Movimientos Registrados</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha y Hora</th>
+                    <th>Documento Ref.</th>
+                    <th>Descripción</th>
+                    <th class="text-end">Entrada</th>
+                    <th class="text-end">Salida</th>
+                    <th class="text-end">Saldo Final</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for movimiento in movimientos %}
+                <tr>
+                    <td>{{ movimiento.fecha|date:"d/m/Y P" }}</td>
+                    <td>{{ movimiento.documento }}</td>
+                    <td>{{ movimiento.descripcion }}</td>
+                    <td class="text-end">{{ movimiento.entrada }}</td>
+                    <td class="text-end">{{ movimiento.salida }}</td>
+                    <td class="text-end"><strong>{{ movimiento.saldo }}</strong></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center;">No se encontraron movimientos para los criterios seleccionados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>

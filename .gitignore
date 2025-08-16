@@ -1,0 +1,15 @@
+# Entorno Virtual
+venv/
+
+# Archivos de SQLite (si usas)
+db.sqlite3
+
+# Archivos de caché de Python
+__pycache__/
+*.pyc
+
+# Archivos estáticos recolectados
+staticfiles/
+
+# Archivo de registro de nohup
+nohup.out

@@ -1,0 +1,34 @@
+{% extends 'produccion/base.html' %}
+{% block title %}Requisiciones de Material{% endblock %}
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Requisiciones de Material</h1>
+        <a href="{% url 'crear_requisicion' %}" class="btn btn-primary">Añadir Nueva Requisición</a>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Número</th>
+                        <th>Producto a Elaborar</th>
+                        <th>Fecha</th>
+                        <th>Solicitante</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in requisiciones %}
+                    <tr>
+                        <td><a href="{% url 'detalle_requisicion' req.id %}"><strong>{{ req.numero_requisicion|default:"-" }}</strong></a></td>
+                        <td>{{ req.producto_a_elaborar }}</td>
+                        <td>{{ req.fecha }}</td>
+                        <td>{{ req.solicitado_por }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4">No hay requisiciones para mostrar.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

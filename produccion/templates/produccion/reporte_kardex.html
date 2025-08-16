@@ -1,0 +1,78 @@
+{% extends 'produccion/base.html' %}
+
+{% block title %}Reporte de Kardex por Producto{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Reporte de Kardex por Producto</h1>
+        <!-- NUEVO BOTÓN PARA IMPRIMIR -->
+        <a href="{% url 'reporte_kardex_imprimir' %}?codigo_producto={{ codigo_buscado }}&fecha_desde={{ fecha_desde_valor }}&fecha_hasta={{ fecha_hasta_valor }}" target="_blank" class="btn btn-secondary"><i class="bi bi-printer"></i> Generar Reporte PDF</a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{% url 'reporte_kardex' %}">
+                <div class="row align-items-end g-3">
+                    <div class="col-md-4">
+                        <label for="codigo_producto" class="form-label"><b>Código del Producto:</b></label>
+                        <input type="text" name="codigo_producto" class="form-control" value="{{ codigo_buscado }}" placeholder="Escribe el código...">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="fecha_desde" class="form-label"><b>Desde:</b></label>
+                        <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde_valor }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="fecha_hasta" class="form-label"><b>Hasta:</b></label>
+                        <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta_valor }}">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">Buscar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if movimientos %}
+        <div class="card">
+            <div class="card-header">
+                <h3>Movimientos para el producto: {{ codigo_buscado }}</h3>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-striped table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha y Hora</th>
+                            <th>Documento de Referencia</th>
+                            <th>Descripción</th>
+                            <th class="text-end">Entrada</th>
+                            <th class="text-end">Salida</th>
+                            <th class="text-end">Saldo Final</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movimiento in movimientos %}
+                        <tr>
+                            <td>{{ movimiento.fecha }}</td>
+                            <td>{{ movimiento.documento }}</td>
+                            <td>{{ movimiento.descripcion }}</td>
+                            <td class="text-end">{{ movimiento.entrada }}</td>
+                            <td class="text-end">{{ movimiento.salida }}</td>
+                            <td class="text-end"><strong>{{ movimiento.saldo }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% elif codigo_buscado %}
+        <div class="alert alert-warning">
+            No se encontraron movimientos para el código de producto "{{ codigo_buscado }}" en el rango de fechas seleccionado.
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            Por favor, ingrese un código de producto en el campo de búsqueda para ver sus movimientos.
+        </div>
+    {% endif %}
+
+{% endblock %}

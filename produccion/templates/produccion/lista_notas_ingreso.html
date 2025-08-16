@@ -1,0 +1,32 @@
+{% extends 'produccion/base.html' %}
+{% block title %}Notas de Ingreso{% endblock %}
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Notas de Ingreso de Producto Terminado</h1>
+        <a href="{% url 'crear_nota_ingreso' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Añadir Nueva Nota</a>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Número de Nota</th>
+                        <th>Fecha</th>
+                        <th>Elaborado Por</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for nota in notas %}
+                    <tr>
+                        <td><a href="{% url 'detalle_nota_ingreso' nota.id %}"><strong>{{ nota.numero_nota }}</strong></a></td>
+                        <td>{{ nota.fecha }}</td>
+                        <td>{{ nota.elaborado_por }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3">No hay notas de ingreso para mostrar.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

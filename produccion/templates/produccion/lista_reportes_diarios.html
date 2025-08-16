@@ -1,0 +1,32 @@
+{% extends 'produccion/base.html' %}
+{% block title %}Reportes Diarios{% endblock %}
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Reportes Diarios de Producto Terminado</h1>
+        <a href="{% url 'crear_reporte_diario' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Añadir Nuevo Reporte</a>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Turno</th>
+                        <th>Encargado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reporte in reportes %}
+                    <tr>
+                        <td><a href="{% url 'detalle_reporte_diario' reporte.id %}"><strong>{{ reporte.fecha }}</strong></a></td>
+                        <td>{{ reporte.turno }}</td>
+                        <td>{{ reporte.nombre_encargado }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3">No hay reportes diarios para mostrar.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

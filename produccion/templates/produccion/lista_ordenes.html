@@ -1,0 +1,38 @@
+{% extends 'produccion/base.html' %}
+
+{% block title %}Órdenes de Producción{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Órdenes de Producción Activas</h1>
+        <a href="{% url 'crear_orden' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Añadir Nueva Orden</a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="">
+                <div class="row align-items-end">
+                    <div class="col-md-4">
+                        <label for="fecha_desde" class="form-label">Desde:</label>
+                        <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde_valor }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="fecha_hasta" class="form-label">Hasta:</label>
+                        <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta_valor }}">
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-info">Filtrar</button>
+                        <a href="{% url 'lista_ordenes' %}" class="btn btn-secondary">Limpiar</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover mb-0">
+                </table>
+        </div>
+    </div>
+{% endblock %}

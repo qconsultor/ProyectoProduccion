@@ -1,0 +1,38 @@
+{% extends 'produccion/base.html' %}
+{% block title %}{% if form.instance.pk %}Editar{% else %}Añadir{% endif %} Control{% endblock %}
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>{% if form.instance.pk %}Editar{% else %}Añadir{% endif %} Control de Proceso para: {{ control.nombre_del_libro }}</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+
+                <h4>Información General</h4>
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                    </div>
+                {% endfor %}
+
+                <hr class="my-4">
+
+                <h4>Detalles del Proceso</h4>
+
+                {{ formset.management_form }}
+
+                {% for detalle_form in formset %}
+                    <div class="row border-bottom py-3">
+                        {{ detalle_form.as_p }}
+                    </div>
+                {% endfor %}
+
+                <hr>
+                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                <a href="{% url 'detalle_control' control.id %}" class="btn btn-secondary">Cancelar</a>
+            </form>
+        </div>
+    </div>
+{% endblock %}

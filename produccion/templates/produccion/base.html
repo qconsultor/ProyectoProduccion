@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Proyecto de Producción{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            display: flex;
+            background-color: #f8f9fa;
+        }
+        .sidebar {
+            width: 280px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: #212529; /* Un gris oscuro casi negro */
+            padding: 1.5rem;
+        }
+        .sidebar .nav-link {
+            color: #adb5bd; /* Un gris claro para el texto */
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+        .sidebar .nav-link .bi {
+            margin-right: 10px;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: #ffffff; /* Blanco al pasar el ratón o si está activo */
+        }
+        .sidebar h2 {
+            color: white;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .main-content {
+            margin-left: 280px; /* Mismo ancho que el sidebar */
+            padding: 2rem;
+            width: calc(100% - 280px);
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <h2>PROYECTO<br>PRODUCCIÓN</h2>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'lista_ordenes' %}">
+                        <i class="bi bi-journal-text"></i> Órdenes de Producción
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'lista_requisiciones' %}">
+                        <i class="bi bi-card-list"></i> Requisiciones
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'lista_controles' %}">
+                        <i class="bi bi-clipboard-check"></i> Controles de Proceso
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'lista_reportes_diarios' %}">
+                        <i class="bi bi-calendar-check"></i> Reportes Diarios
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'lista_notas_ingreso' %}">
+                        <i class="bi bi-box-arrow-in-down"></i> Notas de Ingreso
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-graph-up"></i> Reportes
+                    </a>
+                </li>
+                <li class="nav-item ps-4">
+                    <a class="nav-link" href="{% url 'reporte_kardex' %}">
+                        <i class="bi bi-box-seam"></i> Kardex por Producto
+                    </a>
+                </li>
+            </ul>
+    </aside>
+
+    <main class="main-content">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

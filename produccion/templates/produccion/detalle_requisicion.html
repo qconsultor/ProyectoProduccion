@@ -1,0 +1,29 @@
+{% extends 'produccion/base.html' %}
+
+{% block title %}Detalle de Requisición: {{ requisicion.numero_requisicion }}{% endblock %}
+
+{% block content %}
+    <h1>
+        Detalle de la Requisición: {{ requisicion.numero_requisicion|default:"Sin Número" }}
+        <a href="{% url 'editar_requisicion' requisicion.id %}" style="font-size: 0.6em; font-weight: normal;">(Editar)</a>
+    </h1>
+    
+    <div class="detalle-grid" style="display: grid; grid-template-columns: 180px 1fr; gap: 5px 15px;">
+        <dt>Producto a Elaborar:</dt> <dd>{{ requisicion.producto_a_elaborar }}</dd>
+        <dt>Fecha:</dt> <dd>{{ requisicion.fecha }}</dd>
+        <dt>Solicitado Por:</dt> <dd>{{ requisicion.solicitado_por }}</dd>
+        <dt>Autorizado Por:</dt> <dd>{{ requisicion.autorizado_por }}</dd>
+    </div>
+
+    <h2 style="border-top: 2px solid #ccc; padding-top: 1em; margin-top: 2em;">Detalles de Materiales Solicitados</h2>
+    {% for detalle in requisicion.requisiciondetalle_set.all %}
+        <div class="detalle-grid" style="display: grid; grid-template-columns: 180px 1fr; gap: 5px 15px;">
+            <dt>Producto Solicitado:</dt> <dd>{{ detalle.producto_solicitado }}</dd>
+            <dt>Cantidad:</dt> <dd>{{ detalle.cantidad }}</dd>
+            <dt>Observaciones:</dt> <dd>{{ detalle.observaciones }}</dd>
+        </div>
+        <hr>
+    {% empty %}
+        <p>No se han agregado materiales para esta requisición.</p>
+    {% endfor %}
+{% endblock %}
