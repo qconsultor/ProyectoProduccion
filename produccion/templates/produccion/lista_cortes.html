@@ -1,0 +1,35 @@
+{% extends 'produccion/base.html' %}
+
+{% block title %}Reportes de Corte de Bobina{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Reportes de Corte de Bobina</h1>
+        <a href="{% url 'crear_corte' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Añadir Nuevo Reporte</a>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Número de Reporte</th>
+                        <th>Fecha</th>
+                        <th>Operario</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for corte in cortes %}
+                    <tr>
+                        <!-- <td><a href="#"><strong>{{ corte.numero_reporte }}</strong></a></td> -->
+                         <td><a href="{% url 'detalle_corte' corte.id %}"><strong>{{ corte.numero_reporte }}</strong></a></td>
+                        <td>{{ corte.fecha }}</td>
+                        <td>{{ corte.nombre_operario }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3">No hay reportes de corte para mostrar.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

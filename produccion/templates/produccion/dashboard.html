@@ -1,0 +1,71 @@
+{% extends 'produccion/base.html' %}
+
+{% block title %}Dashboard de Producción{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Dashboard de Producción</h1>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover table-bordered text-center mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 10%;">OP #</th>
+                        <th style="width: 30%;">Producto</th>
+                        <th style="width: 15%;">Estado</th>
+                        <th style="width: 15%;">Corte Bobina</th>
+                        <th style="width: 15%;">Requisición</th>
+                        <th style="width: 15%;">Control Proceso</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for orden in ordenes %}
+                    <tr>
+                        <td><strong><a href="{% url 'detalle_orden' orden.id %}">{{ orden.numero_orden }}</a></strong></td>
+                        <td class="text-start">{{ orden.producto_a_elaborar }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if orden.status == 'PENDIENTE' %}bg-secondary
+                                {% elif orden.status == 'EN_PROCESO' %}bg-primary
+                                {% elif orden.status == 'COMPLETADO' %}bg-success
+                                {% elif orden.status == 'DETENIDO' %}bg-danger
+                                {% endif %}">
+                                {{ orden.get_status_display }}
+                            </span>
+                        </td>
+
+                        <td>
+                            {% for corte in orden.cortes.all %}
+                                <a href="{% url 'detalle_corte' corte.id %}">{{ corte.numero_reporte }}</a>{% if not forloop.last %}, {% endif %}
+                            {% empty %}
+                                <span class="text-muted">❌ Pendiente</span>
+                            {% endfor %}
+                        </td>
+
+                        <td>
+                            {% for req in orden.requisiciones.all %}
+                                <a href="{% url 'detalle_requisicion' req.id %}">{{ req.numero_requisicion }}</a>{% if not forloop.last %}, {% endif %}
+                            {% empty %}
+                                <span class="text-muted">❌ Pendiente</span>
+                            {% endfor %}
+                        </td>
+
+                        <td>
+                            {% for control in orden.controles.all %}
+                                <a href="{% url 'detalle_control' control.id %}">{{ control.id }}</a>{% if not forloop.last %}, {% endif %}
+                            {% empty %}
+                                <span class="text-muted">❌ Pendiente</span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">No hay órdenes de producción para mostrar.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

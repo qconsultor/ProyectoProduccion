@@ -21,7 +21,7 @@
                 {% if form.instance.pk %}
                 <a href="{% url 'eliminar_orden' form.instance.pk %}" class="btn btn-danger">Eliminar</a>
                 {% endif %}
-                <a href="{% url 'lista_ordenes' %}" class="btn btn-secondary">Cancelar</a>
+                <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancelar</button>
             </form>
         </div>
     </div>

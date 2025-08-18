@@ -1,39 +1,53 @@
 # Al principio de produccion/views.py
+from django.db.models import Max
 from django.shortcuts import render, redirect, get_object_or_404
-from django.forms import inlineformset_factory
+from django.forms import inlineformset_factory,modelformset_factory # <-- ¡AÑADE ESTA LÍNEA!
+from django.contrib import messages
 # Al principio de produccion/views.py
 from .models import (
-    OrdenProduccion, RequisicionEncabezado, ControlProceso, CorteDeBobina, 
+    OrdenProduccion, RequisicionEncabezado, ControlProceso, CorteDeBobina, CorteDeBobinaDetalle, 
     ReporteDiarioProductoTerminado, NotaIngresoProductoTerminado, 
     Producto, Kardex
 )
 #from .forms import OrdenProduccionForm, RequisicionForm
-from .forms import OrdenProduccionForm, RequisicionForm, ControlProcesoForm , ReporteDiarioForm , NotaIngresoForm
+from .forms import OrdenProduccionForm, RequisicionForm, ControlProcesoForm , ReporteDiarioForm , NotaIngresoForm, CorteDeBobinaForm, CorteDeBobinaDetalleForm
+
+#dashboard
+# En produccion/views.py
+
+def dashboard_produccion(request):
+    # Buscamos todas las órdenes, las más nuevas primero
+    ordenes = OrdenProduccion.objects.all().order_by('-id') 
+
+    contexto = {
+        'ordenes': ordenes
+    }
+    return render(request, 'produccion/dashboard.html', contexto)
 
 # Create your views here. ORDENES
-def lista_ordenes(request):
-    # Empezamos con todas las órdenes
-    queryset = OrdenProduccion.objects.all()
+# En produccion/views.py
 
-    # Obtenemos los valores de los filtros de la URL (son peticiones GET)
+# En produccion/views.py
+
+def lista_ordenes(request):
     fecha_desde = request.GET.get('fecha_desde', '')
     fecha_hasta = request.GET.get('fecha_hasta', '')
 
-    # Si el usuario proporcionó una fecha 'desde', filtramos el queryset
-    if fecha_desde:
-        queryset = queryset.filter(fecha__gte=fecha_desde)
+    ordenes = OrdenProduccion.objects.all()
 
-    # Si el usuario proporcionó una fecha 'hasta', filtramos el queryset
+    if fecha_desde:
+        # CORREGIDO: Usamos 'fecha'
+        ordenes = ordenes.filter(fecha__gte=fecha_desde)
+
     if fecha_hasta:
-        queryset = queryset.filter(fecha__lte=fecha_hasta)
+        # CORREGIDO: Usamos 'fecha'
+        ordenes = ordenes.filter(fecha__lte=fecha_hasta)
 
     contexto = {
-        'ordenes': queryset,
-        # Pasamos los valores de los filtros para que se queden en los campos
+        'ordenes': ordenes.order_by('-fecha'), # CORREGIDO: Usamos 'fecha'
         'fecha_desde_valor': fecha_desde,
         'fecha_hasta_valor': fecha_hasta,
     }
-
     return render(request, 'produccion/lista_ordenes.html', contexto)
 
 # AGREGA ESTA NUEVA FUNCIÓN
@@ -383,4 +397,129 @@ def reporte_kardex_imprimir(request):
         'fecha_desde_valor': fecha_desde,
         'fecha_hasta_valor': fecha_hasta,
     }
-    return render(request, 'produccion/reporte_kardex_imprimir.html', contexto)    
+    return render(request, 'produccion/reporte_kardex_imprimir.html', contexto)
+
+#17082025
+# Al final de produccion/views.py
+from django.http import JsonResponse
+
+def buscar_bobinas_api(request):
+    # Obtenemos el término de búsqueda que nos envía el usuario
+    query = request.GET.get('term', '')
+
+    # Filtramos los productos que cumplen las condiciones
+    bobinas = Producto.objects.using('rq').filter(
+        idsucursal=10,
+        nombre3='BOBINA',
+        # Usamos __icontains para buscar el texto en el nombre O en el código
+        codigo__icontains=query
+    ).order_by('codigo')[:10] # Limitamos a 10 resultados para que sea rápido
+
+    # Preparamos los resultados en un formato que el navegador entienda (JSON)
+    resultados = []
+    for bobina in bobinas:
+        resultados.append({
+            'id': bobina.codigo,
+            'text': f"{bobina.codigo} | {bobina.nombre}",
+            'existencia': bobina.cantidad  # Asumimos que el campo se llama 'cantidad'
+        })
+
+    return JsonResponse(resultados, safe=False)
+
+#18082025
+# En produccion/views.py
+
+def crear_corte(request):
+    DetalleFormSet = modelformset_factory(CorteDeBobinaDetalle, form=CorteDeBobinaDetalleForm, extra=5, can_delete=True)
+
+    if request.method == 'POST':
+        form = CorteDeBobinaForm(request.POST)
+        detalle_formset = DetalleFormSet(request.POST, queryset=CorteDeBobinaDetalle.objects.none())
+
+        if form.is_valid() and detalle_formset.is_valid():
+            corte_bobina_instance = form.save()
+            for detalle_form in detalle_formset:
+                if detalle_form.cleaned_data and not detalle_form.cleaned_data.get('DELETE'):
+                    detalle = detalle_form.save(commit=False)
+                    detalle.corte_de_bobina = corte_bobina_instance
+                    detalle.save()
+            
+            messages.success(request, f'¡Reporte de Corte N° {corte_bobina_instance.numero_reporte} guardado exitosamente!')
+            return redirect('lista_cortes')
+    else:
+        # Lógica para calcular el siguiente número de reporte
+        ultimo_reporte = CorteDeBobina.objects.aggregate(max_num=Max('numero_reporte'))
+        numero_maximo_texto = ultimo_reporte['max_num'] or '0'
+        siguiente_numero = int(numero_maximo_texto) + 1
+        
+        form = CorteDeBobinaForm(initial={'numero_reporte': siguiente_numero})
+        detalle_formset = DetalleFormSet(queryset=CorteDeBobinaDetalle.objects.none())
+
+    contexto = {
+        'form': form,
+        'detalle_formset': detalle_formset
+    }
+    return render(request, 'produccion/crear_corte.html', contexto)
+
+def lista_cortes(request):
+    cortes = CorteDeBobina.objects.all().order_by('-fecha')
+    return render(request, 'produccion/lista_cortes.html', {'cortes': cortes}) 
+
+# Agrega esta nueva función
+def detalle_corte(request, corte_id):
+    corte = get_object_or_404(CorteDeBobina, pk=corte_id)
+    # También obtenemos los detalles (las bobinas) asociados a este reporte
+    detalles = CorteDeBobinaDetalle.objects.filter(corte_de_bobina=corte)
+
+    contexto = {
+        'corte': corte,
+        'detalles': detalles
+    }
+    return render(request, 'produccion/detalle_corte.html', contexto) 
+
+# En produccion/views.py
+
+def editar_corte(request, corte_id):
+    # Buscamos el reporte de corte que se va a editar
+    corte = get_object_or_404(CorteDeBobina, pk=corte_id)
+    # Preparamos el formset para los detalles
+    DetalleFormSet = modelformset_factory(CorteDeBobinaDetalle, form=CorteDeBobinaDetalleForm, extra=1, can_delete=True)
+
+    if request.method == 'POST':
+        # Si el usuario envía el formulario, procesamos los datos
+        form = CorteDeBobinaForm(request.POST, instance=corte)
+        # Pasamos el queryset de los detalles existentes
+        detalle_formset = DetalleFormSet(request.POST, queryset=CorteDeBobinaDetalle.objects.filter(corte_de_bobina=corte))
+
+        if form.is_valid() and detalle_formset.is_valid():
+            form.save()
+
+            # Guardamos los detalles
+            instances = detalle_formset.save(commit=False)
+            for instance in instances:
+                instance.corte_de_bobina = corte
+                instance.save()
+            # El segundo .save() se encarga de procesar los objetos marcados para eliminar
+            detalle_formset.save() 
+
+            return redirect('lista_cortes')
+    else:
+        # Si el usuario solo está cargando la página, mostramos los datos existentes
+        form = CorteDeBobinaForm(instance=corte)
+        detalle_formset = DetalleFormSet(queryset=CorteDeBobinaDetalle.objects.filter(corte_de_bobina=corte))
+
+    contexto = {
+        'form': form,
+        'detalle_formset': detalle_formset
+    }
+    # Reutilizamos la misma plantilla de creación, ya que el formulario es el mismo
+    return render(request, 'produccion/crear_corte.html', contexto)
+
+# En produccion/views.py
+
+def eliminar_corte(request, corte_id):
+    corte = get_object_or_404(CorteDeBobina, pk=corte_id)
+    if request.method == 'POST':
+        corte.delete()
+        return redirect('lista_cortes')
+    return render(request, 'produccion/eliminar_corte.html', {'corte': corte})  

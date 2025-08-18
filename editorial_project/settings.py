@@ -26,8 +26,9 @@ SECRET_KEY = 'django-insecure-*(kw(f%vh8i0hstkegwki1mrl91au@qz&n)+#i-cq3d=i&b3$9
 DEBUG = True
 
 #ALLOWED_HOSTS = ['134.122.31.117']
-ALLOWED_HOSTS = ['134.122.31.117', 'editorialproduccion.rqconsultores.net']
-
+#ALLOWED_HOSTS = ['134.122.31.117', 'editorialproduccion.rqconsultores.net']
+# Así es como debe quedar:
+ALLOWED_HOSTS = ['134.122.31.117', 'editorialproduccion.rqconsultores.net', '127.0.0.1', 'localhost']
 
 # Application definition
 

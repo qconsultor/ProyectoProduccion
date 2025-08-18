@@ -1,0 +1,17 @@
+{% extends 'produccion/base.html' %}
+
+{% block title %}Confirmar Eliminación{% endblock %}
+
+{% block content %}
+    <div class="alert alert-danger">
+        <h1>¿Estás seguro?</h1>
+        <p>Estás a punto de eliminar permanentemente el Reporte de Corte N° <strong>{{ corte.numero_reporte }}</strong>.</p>
+        <p>Esta acción no se puede deshacer.</p>
+        <hr>
+        <form method="POST">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+            <a href="{% url 'detalle_corte' corte.id %}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+{% endblock %}

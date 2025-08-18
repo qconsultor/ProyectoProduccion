@@ -1,24 +1,15 @@
 from django.db import models
-
-# --- MODELOS EXISTENTES ---
-
-class RequisicionEncabezado(models.Model):
-    numero_requisicion = models.IntegerField(unique=True)
-    producto_a_elaborar = models.CharField(max_length=255)
-    fecha = models.DateField()
-    solicitado_por = models.CharField(max_length=100, blank=True, null=True)
-    autorizado_por = models.CharField(max_length=100, blank=True, null=True)
-
-    def __str__(self):
-        return f"Requisición N° {self.numero_requisicion}"
-
-class RequisicionDetalle(models.Model):
-    requisicion = models.ForeignKey(RequisicionEncabezado, on_delete=models.CASCADE, related_name='detalles')
-    producto_solicitado = models.CharField(max_length=255)
-    cantidad = models.DecimalField(max_digits=10, decimal_places=2)
-    observaciones = models.CharField(max_length=255, blank=True, null=True)
-
+# 1. ORDEN DE PRODUCCIÓN (la clase principal)
 class OrdenProduccion(models.Model):
+    # --- AÑADE ESTAS LÍNEAS ---
+    ESTADOS_PRODUCCION = [
+        ('PENDIENTE', 'Pendiente'),
+        ('EN_PROCESO', 'En Proceso'),
+        ('COMPLETADO', 'Completado'),
+        ('DETENIDO', 'Detenido'),
+    ]
+    status = models.CharField(max_length=20, choices=ESTADOS_PRODUCCION, default='PENDIENTE', verbose_name="Estado")
+    # --- FIN DE LÍNEAS NUEVAS ---
     numero_orden = models.CharField(max_length=50, unique=True, blank=True, null=True)
     fecha = models.DateField()
     producto_a_elaborar = models.CharField(max_length=255)
@@ -35,7 +26,29 @@ class OrdenProduccion(models.Model):
     medida_de_plancha = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
-        return f"Orden N° {self.numero_orden} - {self.producto_a_elaborar}"
+        # Usamos str() para asegurarnos de que siempre devuelva un texto
+        return str(self.numero_orden)
+
+# --- MODELOS EXISTENTES ---
+# 2. AHORA LAS OTRAS CLASES QUE SE CONECTAN A ELLA
+class RequisicionEncabezado(models.Model):
+    numero_requisicion = models.IntegerField(unique=True)
+    producto_a_elaborar = models.CharField(max_length=255)
+    fecha = models.DateField()
+    solicitado_por = models.CharField(max_length=100, blank=True, null=True)
+    autorizado_por = models.CharField(max_length=100, blank=True, null=True)
+    # --- AÑADE ESTA LÍNEA ---
+    orden_produccion = models.ForeignKey(OrdenProduccion, on_delete=models.SET_NULL, null=True, blank=True, related_name='requisiciones')
+    def __str__(self):
+        return f"Requisición N° {self.numero_requisicion}"
+
+class RequisicionDetalle(models.Model):
+    requisicion = models.ForeignKey(RequisicionEncabezado, on_delete=models.CASCADE, related_name='detalles')
+    producto_solicitado = models.CharField(max_length=255)
+    cantidad = models.DecimalField(max_digits=10, decimal_places=2)
+    observaciones = models.CharField(max_length=255, blank=True, null=True)
+
+
 
 class OrdenProduccionDetalle(models.Model):
     orden_produccion = models.ForeignKey(OrdenProduccion, on_delete=models.CASCADE, related_name='detalles')
@@ -58,7 +71,8 @@ class ControlProceso(models.Model):
     cantidad = models.IntegerField(blank=True, null=True)
     elaborado_por = models.CharField(max_length=100, blank=True, null=True)
     revisado_por = models.CharField(max_length=100, blank=True, null=True)
-
+    # --- AÑADE ESTA LÍNEA ---
+    orden_produccion = models.ForeignKey(OrdenProduccion, on_delete=models.SET_NULL, null=True, blank=True, related_name='controles')
     def __str__(self):
         return f"Control de Proceso para: {self.nombre_del_libro} ({self.temporada_anio})"
 
@@ -84,7 +98,8 @@ class CorteDeBobina(models.Model):
     nombre_operario = models.CharField(max_length=255)
     ancho_bobina = models.CharField(max_length=50, blank=True, null=True)
     medida_de_corte = models.CharField(max_length=50, blank=True, null=True)
-
+    # --- AÑADE ESTA LÍNEA ---
+    orden_produccion = models.ForeignKey(OrdenProduccion, on_delete=models.SET_NULL, null=True, blank=True, related_name='cortes')
     def __str__(self):
         return f"Corte de Bobina N° {self.numero_reporte} - {self.nombre_operario}"
 
@@ -144,6 +159,8 @@ class Producto(models.Model):
     # El resto de los campos que ya definiste
     codigo = models.CharField(max_length=30, unique=True, verbose_name="Codigo")
     nombre = models.CharField(max_length=255, verbose_name="Nombre del Producto")
+    # --- AGREGA ESTA LÍNEA ---
+    nombre3 = models.CharField(max_length=50, blank=True, null=True)
     cantidad = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     idsucursal = models.IntegerField()
 

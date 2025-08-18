@@ -10,8 +10,8 @@
 
     <div class="card mb-4">
         <div class="card-body">
-            <form method="GET" action="">
-                <div class="row align-items-end">
+            <form method="GET" action="{% url 'lista_ordenes' %}">
+                <div class="row align-items-end g-3">
                     <div class="col-md-4">
                         <label for="fecha_desde" class="form-label">Desde:</label>
                         <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde_valor }}">
@@ -20,9 +20,11 @@
                         <label for="fecha_hasta" class="form-label">Hasta:</label>
                         <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta_valor }}">
                     </div>
-                    <div class="col-md-4">
-                        <button type="submit" class="btn btn-info">Filtrar</button>
-                        <a href="{% url 'lista_ordenes' %}" class="btn btn-secondary">Limpiar</a>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-info w-100">Filtrar</button>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="{% url 'lista_ordenes' %}" class="btn btn-secondary w-100">Limpiar</a>
                     </div>
                 </div>
             </form>
@@ -32,7 +34,38 @@
     <div class="card">
         <div class="card-body">
             <table class="table table-hover mb-0">
-                </table>
+                <thead class="table-light">
+                    <tr>
+                        <th>Número OP</th>
+                        <th>Producto a Elaborar</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for orden in ordenes %}
+                    <tr>
+                        <td><a href="{% url 'detalle_orden' orden.id %}"><strong>{{ orden.numero_orden }}</strong></a></td>
+                        <td>{{ orden.producto_a_elaborar }}</td>
+                        <td>{{ orden.fecha }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if orden.status == 'PENDIENTE' %}bg-secondary
+                                {% elif orden.status == 'EN_PROCESO' %}bg-primary
+                                {% elif orden.status == 'COMPLETADO' %}bg-success
+                                {% elif orden.status == 'DETENIDO' %}bg-danger
+                                {% endif %}">
+                                {{ orden.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4">No se encontraron órdenes de producción con los filtros seleccionados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 {% endblock %}

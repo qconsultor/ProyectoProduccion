@@ -43,67 +43,46 @@ def actualizar_kardex_por_requisicion(sender, instance, created, **kwargs):
 
 # Al final de produccion/signals.py
 
+# En produccion/signals.py
+
 @receiver(post_save, sender=CorteDeBobinaDetalle)
 def actualizar_kardex_por_corte(sender, instance, created, **kwargs):
+    """
+    Esta señal se dispara cuando se guarda un detalle de corte.
+    Su propósito es registrar la SALIDA de la bobina utilizada.
+    """
     if created:
-        # Asumimos que el 'codigo_bobina' es el SKU del producto "bobina" (materia prima)
-        # Y que la descripción del reporte principal nos dice qué nuevo producto se crea.
-
-        # --- Movimiento de SALIDA de la materia prima ---
         try:
-            materia_prima = Producto.objects.using('rq').get(
+            # 1. Buscamos la bobina (materia prima) que se usó.
+            bobina_utilizada = Producto.objects.using('rq').get(
                 codigo=instance.codigo_bobina,
                 idsucursal=10 
             )
 
-            saldo_anterior_mp = materia_prima.cantidad
-            nuevo_saldo_mp = saldo_anterior_mp - instance.resmas # Asumimos que la cantidad de salida se mide en resmas
+            # 2. Calculamos el nuevo saldo (descontamos 1 unidad).
+            saldo_anterior = bobina_utilizada.cantidad
+            nuevo_saldo = saldo_anterior - 1 # Descontamos una bobina
 
+            # 3. Creamos el registro de SALIDA en el Kardex.
             Kardex.objects.using('rq').create(
-                producto=materia_prima,
-                documento=f"Corte N° {instance.corte_de_bobina.numero_reporte}",
-                # --- LÍNEA AÑADIDA ---
-                descripcion=producto_terminado.nombre,
-                salida=instance.resmas,
-                saldo=nuevo_saldo_mp,
+                producto=bobina_utilizada,
+                codigo=bobina_utilizada.codigo,
+                # Usamos el nombre del producto en la descripción del movimiento
+                descripcion=bobina_utilizada.nombre, 
+                documento=f"Reporte de Corte N° {instance.corte_de_bobina.numero_reporte}",
+                salida=1, # La salida es de 1 unidad (una bobina)
+                saldo=nuevo_saldo,
                 idsucursal=10
             )
 
-            materia_prima.cantidad = nuevo_saldo_mp
-            materia_prima.save(using='rq')
+            # 4. Actualizamos la existencia total del producto.
+            bobina_utilizada.cantidad = nuevo_saldo
+            bobina_utilizada.save(using='rq')
 
         except Producto.DoesNotExist:
-            print(f"ADVERTENCIA: Materia prima con Código '{instance.codigo_bobina}' no encontrada.")
-
-        # --- Movimiento de ENTRADA del producto procesado ---
-        # Asumimos que el 'medida_de_corte' nos da una pista del nuevo producto
-        try:
-            # Aquí necesitaríamos una lógica para identificar el SKU del nuevo producto (los pliegos)
-            # Por ahora, vamos a simularlo buscando un producto con un SKU específico.
-            # En el futuro, podrías tener un campo en el formulario que te diga qué nuevo SKU se está creando.
-            producto_procesado = Producto.objects.using('rq').get(
-                codigo=f"PLIEGOS-{instance.corte_de_bobina.medida_de_corte}", 
-                idsucursal=10
-            )
-
-            saldo_anterior_pp = producto_procesado.cantidad
-            nuevo_saldo_pp = saldo_anterior_pp + instance.pliegos # La cantidad de entrada son los pliegos
-
-            Kardex.objects.using('rq').create(
-                producto=producto_procesado,
-                documento=f"Corte N° {instance.corte_de_bobina.numero_reporte}",
-                # --- LÍNEA AÑADIDA ---
-                descripcion=producto_terminado.nombre,
-                entrada=instance.pliegos,
-                saldo=nuevo_saldo_pp,
-                idsucursal=10
-            )
-
-            producto_procesado.cantidad = nuevo_saldo_pp
-            producto_procesado.save(using='rq')
-
-        except Producto.DoesNotExist:
-            print(f"ADVERTENCIA: Producto procesado para corte '{instance.corte_de_bobina.medida_de_corte}' no encontrado.")
+            print(f"ADVERTENCIA: La bobina con Código '{instance.codigo_bobina}' no fue encontrada en el catálogo.")
+        except Exception as e:
+            print(f"ERROR inesperado en la señal de corte de bobina: {e}")
 
 ###05072025
 

@@ -1,0 +1,119 @@
+{% extends 'produccion/base.html' %}
+
+{% block title %}
+    {% if form.instance.pk %}Editar{% else %}Nuevo{% endif %} Reporte de Corte
+{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>{% if form.instance.pk %}Editar{% else %}Nuevo{% endif %} Reporte de Corte de Bobina</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+
+                {% if form.errors or detalle_formset.errors %}
+                    <div class="alert alert-danger">
+                        <strong>Por favor, corrige los siguientes errores:</strong>
+                        {{ form.errors }}
+                        {{ detalle_formset.errors }}
+                    </div>
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-md-3"><div class="mb-3"><label for="{{ form.numero_reporte.id_for_label }}" class="form-label"><b>{{ form.numero_reporte.label }}</b></label>{{ form.numero_reporte }}</div></div>
+                    <div class="col-md-3"><div class="mb-3"><label for="{{ form.fecha.id_for_label }}" class="form-label"><b>{{ form.fecha.label }}</b></label>{{ form.fecha }}</div></div>
+                    <div class="col-md-6"><div class="mb-3"><label for="{{ form.nombre_operario.id_for_label }}" class="form-label"><b>{{ form.nombre_operario.label }}</b></label>{{ form.nombre_operario }}</div></div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12"><div class="mb-3"><label for="{{ form.orden_produccion.id_for_label }}" class="form-label"><b>{{ form.orden_produccion.label }}</b></label>{{ form.orden_produccion }}</div></div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6"><div class="mb-3"><label for="{{ form.ancho_bobina.id_for_label }}" class="form-label"><b>{{ form.ancho_bobina.label }}</b></label>{{ form.ancho_bobina }}</div></div>
+                    <div class="col-md-6"><div class="mb-3"><label for="{{ form.medida_de_corte.id_for_label }}" class="form-label"><b>{{ form.medida_de_corte.label }}</b></label>{{ form.medida_de_corte }}</div></div>
+                </div>
+
+                <hr>
+                <h4>Detalles de Bobinas</h4>
+
+                {{ detalle_formset.management_form }}
+                {% for detalle_form in detalle_formset %}
+                    <div class="row mb-3 align-items-center">
+                        <div class="col-md-4">
+                            {% if detalle_form.instance.pk %}<div style="display:none;">{{ detalle_form.id }}</div>{% endif %}
+                            <label>Código Bobina:</label>
+                            {{ detalle_form.codigo_bobina }}
+                            <small class="form-text text-muted" id="existencia-{{ forloop.counter0 }}">Existencia: -</small>
+                        </div>
+                        <div class="col-md-2">{{ detalle_form.pliegos.label_tag }} {{ detalle_form.pliegos }}</div>
+                        <div class="col-md-2">{{ detalle_form.resmas.label_tag }} {{ detalle_form.resmas }}</div>
+                        <div class="col-md-3">{{ detalle_form.observaciones.label_tag }} {{ detalle_form.observaciones }}</div>
+                        <div class="col-md-1">
+                            {% if detalle_form.instance.pk %}
+                                <label>{{ detalle_form.DELETE.label_tag }}</label>
+                                {{ detalle_form.DELETE }}
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+
+                <hr>
+                <button type="submit" class="btn btn-primary">Guardar Reporte</button>
+                {% if form.instance.pk %}
+                <a href="{% url 'eliminar_corte' form.instance.pk %}" class="btn btn-danger">Eliminar</a>
+                {% endif %}
+                <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancelar</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('.bobina-search').each(function(index) {
+        var $select = $(this);
+        var initialValue = $select.val();
+
+        $select.select2({
+            placeholder: "Busca por código de bobina...",
+            ajax: {
+                url: "{% url 'buscar_bobinas_api' %}",
+                dataType: 'json',
+                delay: 250,
+                processResults: function (data) {
+                    return { results: data };
+                },
+                cache: true
+            }
+        });
+        
+        if (initialValue) {
+            $.ajax({
+                type: 'GET',
+                url: "{% url 'buscar_bobinas_api' %}",
+                data: { term: initialValue },
+                dataType: 'json'
+            }).then(function (data) {
+                if (data.length > 0) {
+                    var option = new Option(data[0].text, data[0].id, true, true);
+                    $select.append(option).trigger('change');
+                    $select.trigger({
+                        type: 'select2:select',
+                        params: { data: data[0] }
+                    });
+                }
+            });
+        }
+        
+        $select.on('select2:select', function (e) {
+            var data = e.params.data;
+            $('#existencia-' + index).text('Existencia: ' + data.existencia);
+        });
+    });
+});
+</script>
+{% endblock %}
