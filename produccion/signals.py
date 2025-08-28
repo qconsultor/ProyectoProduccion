@@ -45,45 +45,61 @@ def actualizar_kardex_por_requisicion(sender, instance, created, **kwargs):
 
 # En produccion/signals.py
 
+# En produccion/signals.py
+
+# En produccion/signals.py
+
 @receiver(post_save, sender=CorteDeBobinaDetalle)
 def actualizar_kardex_por_corte(sender, instance, created, **kwargs):
-    """
-    Esta señal se dispara cuando se guarda un detalle de corte.
-    Su propósito es registrar la SALIDA de la bobina utilizada.
-    """
     if created:
+        documento_ref = f"Reporte de Corte N° {instance.corte_de_bobina.numero_reporte}"
+
+        # --- Lógica de SALIDA de la bobina usada ---
         try:
-            # 1. Buscamos la bobina (materia prima) que se usó.
-            bobina_utilizada = Producto.objects.using('rq').get(
-                codigo=instance.codigo_bobina,
-                idsucursal=10 
-            )
-
-            # 2. Calculamos el nuevo saldo (descontamos 1 unidad).
-            saldo_anterior = bobina_utilizada.cantidad
-            nuevo_saldo = saldo_anterior - 1 # Descontamos una bobina
-
-            # 3. Creamos el registro de SALIDA en el Kardex.
+            bobina_usada = Producto.objects.using('rq').get(codigo=instance.codigo_bobina_usada, idsucursal=10)
+            saldo_anterior = bobina_usada.cantidad
+            nuevo_saldo = saldo_anterior - 1
             Kardex.objects.using('rq').create(
-                producto=bobina_utilizada,
-                codigo=bobina_utilizada.codigo,
-                # Usamos el nombre del producto en la descripción del movimiento
-                descripcion=bobina_utilizada.nombre, 
-                documento=f"Reporte de Corte N° {instance.corte_de_bobina.numero_reporte}",
-                salida=1, # La salida es de 1 unidad (una bobina)
-                saldo=nuevo_saldo,
-                idsucursal=10
+                producto=bobina_usada, codigo=bobina_usada.codigo,
+                descripcion=bobina_usada.nombre, documento=documento_ref,
+                salida=1, saldo=nuevo_saldo, idsucursal=10
             )
-
-            # 4. Actualizamos la existencia total del producto.
-            bobina_utilizada.cantidad = nuevo_saldo
-            bobina_utilizada.save(using='rq')
-
+            bobina_usada.cantidad = nuevo_saldo
+            bobina_usada.save(using='rq')
         except Producto.DoesNotExist:
-            print(f"ADVERTENCIA: La bobina con Código '{instance.codigo_bobina}' no fue encontrada en el catálogo.")
-        except Exception as e:
-            print(f"ERROR inesperado en la señal de corte de bobina: {e}")
+            print(f"ERROR en KARDEX: Bobina con código '{instance.codigo_bobina_usada}' no encontrada.")
 
+        # --- Lógica de ENTRADA para el Pliego 1 ---
+        if instance.codigo_pliego_producido_1 and instance.cantidad_pliegos_1 > 0:
+            try:
+                pliego1 = Producto.objects.using('rq').get(codigo=instance.codigo_pliego_producido_1, idsucursal=10)
+                saldo_anterior_p1 = pliego1.cantidad
+                nuevo_saldo_p1 = saldo_anterior_p1 + instance.cantidad_pliegos_1
+                Kardex.objects.using('rq').create(
+                    producto=pliego1, codigo=pliego1.codigo,
+                    descripcion=pliego1.nombre, documento=documento_ref,
+                    entrada=instance.cantidad_pliegos_1, saldo=nuevo_saldo_p1, idsucursal=10
+                )
+                pliego1.cantidad = nuevo_saldo_p1
+                pliego1.save(using='rq')
+            except Producto.DoesNotExist:
+                print(f"ERROR en KARDEX: Pliego 1 con código '{instance.codigo_pliego_producido_1}' no encontrado.")
+
+        # --- Lógica de ENTRADA para el Pliego 2 (si existe) ---
+        if instance.codigo_pliego_producido_2 and instance.cantidad_pliegos_2 > 0:
+            try:
+                pliego2 = Producto.objects.using('rq').get(codigo=instance.codigo_pliego_producido_2, idsucursal=10)
+                saldo_anterior_p2 = pliego2.cantidad
+                nuevo_saldo_p2 = saldo_anterior_p2 + instance.cantidad_pliegos_2
+                Kardex.objects.using('rq').create(
+                    producto=pliego2, codigo=pliego2.codigo,
+                    descripcion=pliego2.nombre, documento=documento_ref,
+                    entrada=instance.cantidad_pliegos_2, saldo=nuevo_saldo_p2, idsucursal=10
+                )
+                pliego2.cantidad = nuevo_saldo_p2
+                pliego2.save(using='rq')
+            except Producto.DoesNotExist:
+                print(f"ERROR en KARDEX: Pliego 2 con código '{instance.codigo_pliego_producido_2}' no encontrado.")
 ###05072025
 
 # En produccion/signals.py

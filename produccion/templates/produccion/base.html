@@ -1,132 +1,134 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Proyecto de Producción{% endblock %}</title>
+    <title>{% block title %}Proyecto Producción{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        body {
-            display: flex;
+        :root {
+            --sidebar-width: 280px;
+        }
+
+        body { 
+            display: flex; 
             background-color: #f8f9fa;
         }
-        .sidebar {
-            width: 280px;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            background-color: #212529; /* Un gris oscuro casi negro */
-            padding: 1.5rem;
+
+        .sidebar { 
+            width: var(--sidebar-width); 
+            height: 100vh; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            background-color: #212529; 
+            color: white; 
+            padding: 1rem; 
+            transition: transform 0.3s ease-in-out;
+            z-index: 1030; /* Para que esté por encima del contenido */
         }
-        .sidebar .nav-link {
-            color: #adb5bd; /* Un gris claro para el texto */
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
+        .sidebar h2 { font-weight: bold; }
+        .sidebar .nav-link { color: #adb5bd; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { color: white; }
+        .sidebar .nav-link .bi { margin-right: 0.5rem; }
+
+        .main-content { 
+            padding: 1rem; 
+            width: 100%;
         }
-        .sidebar .nav-link .bi {
-            margin-right: 10px;
+
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.55%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
         }
-        .sidebar .nav-link:hover, .sidebar .nav-link.active {
-            color: #ffffff; /* Blanco al pasar el ratón o si está activo */
+
+        .mobile-header {
+            display: none; /* Oculto en escritorio */
         }
-        .sidebar h2 {
-            color: white;
-            margin-bottom: 2rem;
-            text-align: center;
+
+        /* Estilos para pantallas grandes (Desktop) */
+        @media (min-width: 992px) {
+            .main-content { 
+                margin-left: var(--sidebar-width); 
+                width: calc(100% - var(--sidebar-width)); 
+            }
         }
-        .main-content {
-            margin-left: 280px; /* Mismo ancho que el sidebar */
-            padding: 2rem;
-            width: calc(100% - 280px);
+
+        /* Estilos para pantallas pequeñas (Mobile) */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-100%); /* Menú oculto por defecto */
+            }
+            .sidebar.show {
+                transform: translateX(0); /* Menú visible cuando tiene la clase 'show' */
+            }
+            .mobile-header {
+                display: flex; /* Visible en móvil */
+                background-color: #212529;
+                color: white;
+                padding: 0.5rem 1rem;
+                align-items: center;
+            }
+            .page-container {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebarMenu">
         <h2>PROYECTO<br>PRODUCCIÓN</h2>
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'dashboard' %}">
-                        <i class="bi bi-grid-1x2"></i> Dashboard
-                    </a>
-                </li>
-
-                <!-- <li class="nav-item">
-                    <a class="nav-link" href="{% url 'crear_corte' %}">
-                        <i class="bi bi-scissors"></i>
-                        Nuevo Corte de Bobina
-                    </a>
-                </li> -->
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'crear_corte' %}">
-                        <i class="bi bi-scissors"></i>
-                        Nuevo Corte de Bobina
-                    </a>
-                </li>
-                <li class="nav-item ps-4"> <a class="nav-link" href="{% url 'lista_cortes' %}">
-                        Ver Reportes de Corte
-                    </a>
-                </li>
-
-
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'lista_ordenes' %}">
-                        <i class="bi bi-journal-text"></i> Órdenes de Producción
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'lista_requisiciones' %}">
-                        <i class="bi bi-card-list"></i> Requisiciones
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'lista_controles' %}">
-                        <i class="bi bi-clipboard-check"></i> Controles de Proceso
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'lista_reportes_diarios' %}">
-                        <i class="bi bi-calendar-check"></i> Reportes Diarios
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'lista_notas_ingreso' %}">
-                        <i class="bi bi-box-arrow-in-down"></i> Notas de Ingreso
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-graph-up"></i> Reportes
-                    </a>
-                </li>
-                <li class="nav-item ps-4">
-                    <a class="nav-link" href="{% url 'reporte_kardex' %}">
-                        <i class="bi bi-box-seam"></i> Kardex por Producto
-                    </a>
-                </li>
-            </ul>
+        <hr>
+        <ul class="nav flex-column">
+            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}"><i class="bi bi-grid-1x2"></i> Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'crear_corte' %}"><i class="bi bi-scissors"></i> Nuevo Corte de Bobina</a></li>
+            <li class="nav-item ps-4"><a class="nav-link" href="{% url 'lista_cortes' %}">Ver Reportes de Corte</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'lista_ordenes' %}"><i class="bi bi-list-check"></i> Órdenes de Producción</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'lista_requisiciones' %}"><i class="bi bi-journal-text"></i> Requisiciones</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'lista_controles' %}"><i class="bi bi-sliders"></i> Controles de Proceso</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'lista_reportes_diarios' %}"><i class="bi bi-calendar-check"></i> Reportes Diarios</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'lista_notas_ingreso' %}"><i class="bi bi-box-arrow-in-down"></i> Notas de Ingreso</a></li>
+            <li class="nav-item"><a class="nav-link"><i class="bi bi-graph-up"></i> Reportes</a></li>
+            <li class="nav-item ps-4"><a class="nav-link" href="{% url 'reporte_kardex' %}"><i class="bi bi-box-seam"></i> Kardex por Producto</a></li>
+        </ul>
     </aside>
 
-    <main class="main-content">
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-        {% block content %}
-        {% endblock %}
-    </main>
+    <div class="page-container">
+        <header class="mobile-header">
+            <button class="navbar-toggler" type="button" id="sidebarToggle">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <h4 class="ms-3 mb-0">PROYECTO PRODUCCIÓN</h4>
+        </header>
+        <main class="main-content">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    {% block extra_js %}{% endblock %}  
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var sidebarToggle = document.getElementById('sidebarToggle');
+            var sidebarMenu = document.getElementById('sidebarMenu');
+            if (sidebarToggle && sidebarMenu) {
+                sidebarToggle.addEventListener('click', function () {
+                    sidebarMenu.classList.toggle('show');
+                });
+            }
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

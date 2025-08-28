@@ -103,12 +103,23 @@ class CorteDeBobina(models.Model):
     def __str__(self):
         return f"Corte de Bobina N° {self.numero_reporte} - {self.nombre_operario}"
 
+# En produccion/models.py
+
+# En produccion/models.py
+
 class CorteDeBobinaDetalle(models.Model):
     corte_de_bobina = models.ForeignKey(CorteDeBobina, on_delete=models.CASCADE, related_name='detalles')
-    codigo_bobina = models.CharField(max_length=100)
-    pliegos = models.IntegerField()
-    resmas = models.IntegerField()
+    codigo_bobina_usada = models.CharField(max_length=50, verbose_name="Bobina Usada")
+    codigo_pliego_producido_1 = models.CharField(max_length=50, blank=True, null=True, verbose_name="Pliego Producido 1")
+    cantidad_pliegos_1 = models.IntegerField(default=0, verbose_name="Cantidad Pliegos 1")
+    resmas_producidas_1 = models.IntegerField(default=0, blank=True, null=True, verbose_name="Resmas Producidas 1")
+    codigo_pliego_producido_2 = models.CharField(max_length=50, blank=True, null=True, verbose_name="Pliego Producido 2")
+    cantidad_pliegos_2 = models.IntegerField(default=0, verbose_name="Cantidad Pliegos 2")
+    resmas_producidas_2 = models.IntegerField(default=0, blank=True, null=True, verbose_name="Resmas Producidas 2")
     observaciones = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Detalle para corte {self.corte_de_bobina.numero_reporte}"
 
 class ReporteDiarioProductoTerminado(models.Model):
     nombre_encargado = models.CharField(max_length=255)
@@ -181,7 +192,7 @@ class Kardex(models.Model):
     # El resto de los campos permanecen igual
     codigo = models.CharField(max_length=30, blank=True, null=True)
     fecha = models.DateTimeField(auto_now_add=True)
-    documento = models.CharField(max_length=100, blank=True, null=True, verbose_name="Documento de Referencia")
+    documento = models.CharField(max_length=100, blank=True, null=True, verbose_name="DocumentodeReferencia")
     descripcion = models.CharField(max_length=255, blank=True, null=True)
     entrada = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     salida = models.DecimalField(max_digits=10, decimal_places=2, default=0)

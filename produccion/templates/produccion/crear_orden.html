@@ -1,28 +1,104 @@
 {% extends 'produccion/base.html' %}
-{% block title %}{% if form.instance.pk %}Editar{% else %}Añadir{% endif %} Orden{% endblock %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Nuevo{% endif %} Reporte de Corte{% endblock %}
+
 {% block content %}
     <div class="card">
-        <div class="card-header">
-            <h3>{% if form.instance.pk %}Editar{% else %}Añadir{% endif %} Orden de Producción</h3>
-        </div>
+        <div class="card-header"><h3>{% if form.instance.pk %}Editar{% else %}Nuevo{% endif %} Reporte de Corte de Bobina</h3></div>
         <div class="card-body">
             <form method="POST">
                 {% csrf_token %}
-                <div class="row">
-                    {% for field in form %}
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                            {{ field }}
-                        </div>
-                    {% endfor %}
-                </div>
                 <hr>
-                <button type="submit" class="btn btn-primary">Guardar</button>
-                {% if form.instance.pk %}
-                <a href="{% url 'eliminar_orden' form.instance.pk %}" class="btn btn-danger">Eliminar</a>
-                {% endif %}
-                <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancelar</button>
-            </form>
+                <h4>Detalles de Transformación</h4>
+                {{ detalle_formset.management_form }}
+                {% for detalle_form in detalle_formset %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Bobina #{{ forloop.counter }}</h5>
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label><b>SALIDA:</b> {{ detalle_form.codigo_bobina_usada.label }}</label>
+                                    {{ detalle_form.codigo_bobina_usada }}
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row align-items-end">
+                                <div class="col-md-6">
+                                    <label><b>ENTRADA:</b> {{ detalle_form.codigo_pliego_producido_1.label }}</label>
+                                    {{ detalle_form.codigo_pliego_producido_1 }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label>{{ detalle_form.cantidad_pliegos_1.label }}</label>
+                                    {{ detalle_form.cantidad_pliegos_1 }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label>{{ detalle_form.resmas_producidas_1.label }}</label>
+                                    {{ detalle_form.resmas_producidas_1 }}
+                                </div>
+                            </div>
+                            <div class="row align-items-end mt-2">
+                                <div class="col-md-6">
+                                    <label><b>ENTRADA:</b> {{ detalle_form.codigo_pliego_producido_2.label }}</label>
+                                    {{ detalle_form.codigo_pliego_producido_2 }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label>{{ detalle_form.cantidad_pliegos_2.label }}</label>
+                                    {{ detalle_form.cantidad_pliegos_2 }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label>{{ detalle_form.resmas_producidas_2.label }}</label>
+                                    {{ detalle_form.resmas_producidas_2 }}
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-12">
+                                    <label>{{ detalle_form.observaciones.label }}</label>
+                                    {{ detalle_form.observaciones }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+                <hr>
+                <button type="submit" class="btn btn-primary">Guardar Reporte</button>
+                </form>
         </div>
     </div>
+{% endblock %}
+
+{% block extra_js %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+function inicializarBuscador(selector, url_api, placeholder_text) {
+    $(selector).each(function() {
+        var $select = $(this);
+        var initialValue = $select.val();
+
+        $select.select2({
+            placeholder: placeholder_text,
+            ajax: { url: url_api, dataType: 'json', delay: 250, processResults: function(data) { return { results: data }; }, cache: true }
+        });
+
+        if (initialValue) {
+            $.ajax({
+                type: 'GET',
+                url: url_api,
+                data: { term: initialValue },
+                dataType: 'json'
+            }).then(function (data) {
+                if (data.length > 0) {
+                    var option = new Option(data[0].text, data[0].id, true, true);
+                    $select.append(option).trigger('change');
+                }
+            });
+        }
+    });
+}
+
+$(document).ready(function() {
+    inicializarBuscador('.bobina-search', "{% url 'buscar_bobinas_api' %}", "Busca una bobina...");
+    inicializarBuscador('.papel-search', "{% url 'buscar_papel_api' %}", "Busca un tipo de papel...");
+});
+</script>
 {% endblock %}

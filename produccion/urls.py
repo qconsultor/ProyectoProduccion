@@ -35,6 +35,8 @@ urlpatterns = [
     path('corte/<int:corte_id>/editar/', views.editar_corte, name='editar_corte'),
     path('corte/<int:corte_id>/eliminar/', views.eliminar_corte, name='eliminar_corte'),
     path('api/buscar-bobinas/', views.buscar_bobinas_api, name='buscar_bobinas_api'),
+    # ... otras urls DAVID
+    #path('corte/editar/<int:reporte_id>/', views.editar_reporte, name='editar_reporte'),
 
     # --- Reportes Diarios ---
     path('reportes-diarios/', views.lista_reportes_diarios, name='lista_reportes_diarios'),
@@ -53,4 +55,8 @@ urlpatterns = [
     # --- Reportes ---
     path('reportes/kardex/', views.reporte_kardex, name='reporte_kardex'),
     path('reportes/kardex/imprimir/', views.reporte_kardex_imprimir, name='reporte_kardex_imprimir'),
+
+    # --- AGREGA ESTA LÍNEA ---
+    path('api/buscar-papel/', views.buscar_papel_api, name='buscar_papel_api'),
+    # ...
 ]

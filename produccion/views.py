@@ -1,4 +1,7 @@
 # Al principio de produccion/views.py
+from datetime import date
+from django.db.models import Q
+from django.db.models.functions import Trim
 from django.db.models import Max
 from django.shortcuts import render, redirect, get_object_or_404
 from django.forms import inlineformset_factory,modelformset_factory # <-- ¡AÑADE ESTA LÍNEA!
@@ -10,7 +13,7 @@ from .models import (
     Producto, Kardex
 )
 #from .forms import OrdenProduccionForm, RequisicionForm
-from .forms import OrdenProduccionForm, RequisicionForm, ControlProcesoForm , ReporteDiarioForm , NotaIngresoForm, CorteDeBobinaForm, CorteDeBobinaDetalleForm
+from .forms import OrdenProduccionForm, RequisicionForm, ControlProcesoForm , ReporteDiarioForm , NotaIngresoForm, CorteDeBobinaForm, CorteDeBobinaDetalleForm, CorteDeBobinaDetalleFormEditar
 
 #dashboard
 # En produccion/views.py
@@ -403,67 +406,72 @@ def reporte_kardex_imprimir(request):
 # Al final de produccion/views.py
 from django.http import JsonResponse
 
-def buscar_bobinas_api(request):
-    # Obtenemos el término de búsqueda que nos envía el usuario
-    query = request.GET.get('term', '')
 
-    # Filtramos los productos que cumplen las condiciones
-    bobinas = Producto.objects.using('rq').filter(
-        idsucursal=10,
-        nombre3='BOBINA',
-        # Usamos __icontains para buscar el texto en el nombre O en el código
-        codigo__icontains=query
-    ).order_by('codigo')[:10] # Limitamos a 10 resultados para que sea rápido
-
-    # Preparamos los resultados en un formato que el navegador entienda (JSON)
-    resultados = []
-    for bobina in bobinas:
-        resultados.append({
-            'id': bobina.codigo,
-            'text': f"{bobina.codigo} | {bobina.nombre}",
-            'existencia': bobina.cantidad  # Asumimos que el campo se llama 'cantidad'
-        })
-
-    return JsonResponse(resultados, safe=False)
 
 #18082025
 # En produccion/views.py
+# En produccion/views.py
 
 def crear_corte(request):
-    DetalleFormSet = modelformset_factory(CorteDeBobinaDetalle, form=CorteDeBobinaDetalleForm, extra=5, can_delete=True)
+    DetalleFormSet = modelformset_factory(CorteDeBobinaDetalle, form=CorteDeBobinaDetalleForm, extra=1, can_delete=True)
 
     if request.method == 'POST':
         form = CorteDeBobinaForm(request.POST)
         detalle_formset = DetalleFormSet(request.POST, queryset=CorteDeBobinaDetalle.objects.none())
 
         if form.is_valid() and detalle_formset.is_valid():
-            corte_bobina_instance = form.save()
-            for detalle_form in detalle_formset:
-                if detalle_form.cleaned_data and not detalle_form.cleaned_data.get('DELETE'):
-                    detalle = detalle_form.save(commit=False)
-                    detalle.corte_de_bobina = corte_bobina_instance
-                    detalle.save()
-            
-            messages.success(request, f'¡Reporte de Corte N° {corte_bobina_instance.numero_reporte} guardado exitosamente!')
+            corte_instance = form.save()
+            instances = detalle_formset.save(commit=False)
+            for instance in instances:
+                # Solo guardamos las filas que el usuario llenó
+                if hasattr(instance, 'codigo_bobina_usada') and instance.codigo_bobina_usada: 
+                    instance.corte_de_bobina = corte_instance
+                    instance.save()
+
+            messages.success(request, f'¡Reporte de Corte N° {corte_instance.numero_reporte} guardado exitosamente!')
             return redirect('lista_cortes')
     else:
-        # Lógica para calcular el siguiente número de reporte
-        ultimo_reporte = CorteDeBobina.objects.aggregate(max_num=Max('numero_reporte'))
-        numero_maximo_texto = ultimo_reporte['max_num'] or '0'
-        siguiente_numero = int(numero_maximo_texto) + 1
-        
-        form = CorteDeBobinaForm(initial={'numero_reporte': siguiente_numero})
+        # --- LÓGICA PARA VALORES POR DEFECTO ---
+        try:
+            # Calculamos el siguiente número de reporte
+            ultimo_reporte = CorteDeBobina.objects.aggregate(max_num=Max('numero_reporte'))
+            numero_maximo_texto = ultimo_reporte['max_num'] or '0'
+            siguiente_numero = int(numero_maximo_texto) + 1
+        except:
+            siguiente_numero = 1 # Si hay un error, empezamos en 1
+
+        # Preparamos los datos iniciales para el formulario
+        initial_data = {
+            'numero_reporte': siguiente_numero,
+            'fecha': date.today()
+        }
+        form = CorteDeBobinaForm(initial=initial_data)
         detalle_formset = DetalleFormSet(queryset=CorteDeBobinaDetalle.objects.none())
 
-    contexto = {
-        'form': form,
-        'detalle_formset': detalle_formset
-    }
-    return render(request, 'produccion/crear_corte.html', contexto)
+    return render(request, 'produccion/crear_corte.html', {'form': form, 'detalle_formset': detalle_formset})
 
+def editar_corte(request, corte_id):
+    corte = get_object_or_404(CorteDeBobina, pk=corte_id)
+    DetalleFormSet = modelformset_factory(CorteDeBobinaDetalle, form=CorteDeBobinaDetalleForm, extra=0, can_delete=True)
+    if request.method == 'POST':
+        form = CorteDeBobinaForm(request.POST, instance=corte)
+        detalle_formset = DetalleFormSet(request.POST, queryset=CorteDeBobinaDetalle.objects.filter(corte_de_bobina=corte))
+        if form.is_valid() and detalle_formset.is_valid():
+            form.save()
+            detalle_formset.save()
+            messages.success(request, f'¡Reporte de Corte N° {corte.numero_reporte} actualizado exitosamente!')
+            return redirect('lista_cortes')
+    else:
+        form = CorteDeBobinaForm(instance=corte)
+        detalle_formset = DetalleFormSet(queryset=CorteDeBobinaDetalle.objects.filter(corte_de_bobina=corte))
+    return render(request, 'produccion/crear_corte.html', {'form': form, 'detalle_formset': detalle_formset})
+
+
+# En produccion/views.py
 def lista_cortes(request):
-    cortes = CorteDeBobina.objects.all().order_by('-fecha')
-    return render(request, 'produccion/lista_cortes.html', {'cortes': cortes}) 
+    # Ordenamos por el número de reporte, del más alto al más bajo
+    cortes = CorteDeBobina.objects.all().order_by('-numero_reporte')
+    return render(request, 'produccion/lista_cortes.html', {'cortes': cortes})
 
 # Agrega esta nueva función
 def detalle_corte(request, corte_id):
@@ -479,29 +487,34 @@ def detalle_corte(request, corte_id):
 
 # En produccion/views.py
 
+# En produccion/views.py
+
 def editar_corte(request, corte_id):
     # Buscamos el reporte de corte que se va a editar
     corte = get_object_or_404(CorteDeBobina, pk=corte_id)
-    # Preparamos el formset para los detalles
-    DetalleFormSet = modelformset_factory(CorteDeBobinaDetalle, form=CorteDeBobinaDetalleForm, extra=1, can_delete=True)
+    # Preparamos el formset para los detalles, SIN formularios extra
+    DetalleFormSet = modelformset_factory(
+        CorteDeBobinaDetalle, 
+        form=CorteDeBobinaDetalleForm, 
+        extra=0, 
+        can_delete=True
+    )
 
     if request.method == 'POST':
         # Si el usuario envía el formulario, procesamos los datos
         form = CorteDeBobinaForm(request.POST, instance=corte)
-        # Pasamos el queryset de los detalles existentes
         detalle_formset = DetalleFormSet(request.POST, queryset=CorteDeBobinaDetalle.objects.filter(corte_de_bobina=corte))
 
         if form.is_valid() and detalle_formset.is_valid():
             form.save()
 
-            # Guardamos los detalles
             instances = detalle_formset.save(commit=False)
             for instance in instances:
                 instance.corte_de_bobina = corte
                 instance.save()
-            # El segundo .save() se encarga de procesar los objetos marcados para eliminar
-            detalle_formset.save() 
+            detalle_formset.save() # Para procesar los objetos marcados para eliminar
 
+            messages.success(request, f'¡Reporte de Corte N° {corte.numero_reporte} actualizado exitosamente!')
             return redirect('lista_cortes')
     else:
         # Si el usuario solo está cargando la página, mostramos los datos existentes
@@ -512,7 +525,7 @@ def editar_corte(request, corte_id):
         'form': form,
         'detalle_formset': detalle_formset
     }
-    # Reutilizamos la misma plantilla de creación, ya que el formulario es el mismo
+    # Aseguramos que renderice la plantilla correcta
     return render(request, 'produccion/crear_corte.html', contexto)
 
 # En produccion/views.py
@@ -522,4 +535,53 @@ def eliminar_corte(request, corte_id):
     if request.method == 'POST':
         corte.delete()
         return redirect('lista_cortes')
-    return render(request, 'produccion/eliminar_corte.html', {'corte': corte})  
+    return render(request, 'produccion/eliminar_corte.html', {'corte': corte})
+
+# En produccion/views.py
+
+# En produccion/views.py
+
+# En produccion/views.py
+
+def buscar_bobinas_api(request):
+    query = request.GET.get('term', '').strip() # Limpiamos espacios del término de búsqueda
+
+    # Anotamos un campo 'codigo_limpio' sin espacios y filtramos por él
+    bobinas = Producto.objects.using('rq').annotate(
+        codigo_limpio=Trim('codigo')
+    ).filter(
+        Q(codigo_limpio__icontains=query) | Q(nombre__icontains=query),
+        idsucursal=10,
+        nombre3='BOBINA'
+    ).order_by('codigo')[:15]
+
+    resultados = []
+    for bobina in bobinas:
+        resultados.append({
+            'id': bobina.codigo,
+            'text': f"{bobina.codigo} | {bobina.nombre}",
+            'existencia': bobina.cantidad
+        })
+    return JsonResponse(resultados, safe=False)
+
+def buscar_papel_api(request):
+    query = request.GET.get('term', '').strip() # Limpiamos espacios del término de búsqueda
+
+    # Misma lógica robusta para el papel
+    papeles = Producto.objects.using('rq').annotate(
+        codigo_limpio=Trim('codigo')
+    ).filter(
+        Q(codigo_limpio__icontains=query) | Q(nombre__icontains=query),
+        idsucursal=10,
+        nombre3='PAPEL'
+    ).order_by('nombre')[:15]
+
+    resultados = []
+    for papel in papeles:
+        resultados.append({
+            'id': papel.codigo,
+            'text': f"{papel.codigo} | {papel.nombre}",
+            'existencia': papel.cantidad
+        })
+    return JsonResponse(resultados, safe=False)
+

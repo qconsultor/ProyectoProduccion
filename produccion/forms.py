@@ -1,38 +1,29 @@
 # produccion/forms.py
-# Al principio de forms.py
-from datetime import date
+
 from django import forms
-from .models import OrdenProduccion, RequisicionEncabezado, ControlProceso, ReporteDiarioProductoTerminado , NotaIngresoProductoTerminado,CorteDeBobina, CorteDeBobinaDetalle
+from datetime import date
+from django.db.models import Max
+from .models import (
+    OrdenProduccion, 
+    RequisicionEncabezado, 
+    ControlProceso, 
+    ReporteDiarioProductoTerminado, 
+    NotaIngresoProductoTerminado,
+    CorteDeBobina, 
+    CorteDeBobinaDetalle
+)
+
+# --- FORMULARIOS PRINCIPALES ---
 
 class OrdenProduccionForm(forms.ModelForm):
     class Meta:
         model = OrdenProduccion
         fields = '__all__'
-        widgets = {
-            'numero_orden': forms.TextInput(attrs={'class': 'form-control'}),
-            'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'producto_a_elaborar': forms.TextInput(attrs={'class': 'form-control'}),
-            'cantidad_a_producir': forms.NumberInput(attrs={'class': 'form-control'}),
-            'cantidad_hojas_por_ejemplar': forms.NumberInput(attrs={'class': 'form-control'}),
-            'tiraje_total': forms.NumberInput(attrs={'class': 'form-control'}),
-            'numero_de_resmas': forms.TextInput(attrs={'class': 'form-control'}),
-            'medida_de_corte': forms.TextInput(attrs={'class': 'form-control'}),
-            'tamano': forms.TextInput(attrs={'class': 'form-control'}),
-            'papel': forms.TextInput(attrs={'class': 'form-control'}),
-            'base': forms.TextInput(attrs={'class': 'form-control'}),
-            'total_planchas': forms.NumberInput(attrs={'class': 'form-control'}),
-            'numero_de_pliegos': forms.NumberInput(attrs={'class': 'form-control'}),
-            'medida_de_plancha': forms.TextInput(attrs={'class': 'form-control'}),
-        }
-
-# En tu archivo produccion/forms.py
+        # ... (puedes añadir widgets si los necesitas)
 
 class RequisicionForm(forms.ModelForm):
     class Meta:
         model = RequisicionEncabezado
-
-        # --- ESTA ES LA LISTA CORREGIDA ---
-        # Quitamos 'recibido' y agregamos 'producto_a_elaborar' para que coincida con tu modelo.
         fields = [
             'orden_produccion', 
             'numero_requisicion', 
@@ -41,7 +32,6 @@ class RequisicionForm(forms.ModelForm):
             'solicitado_por', 
             'autorizado_por'
         ]
-
         widgets = {
             'orden_produccion': forms.Select(attrs={'class': 'form-control'}),
             'numero_requisicion': forms.NumberInput(attrs={'class': 'form-control'}),
@@ -51,80 +41,118 @@ class RequisicionForm(forms.ModelForm):
             'autorizado_por': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
-# (Aquí pondremos el de ControlProceso más adelante)
-# --- AGREGA ESTA NUEVA CLASE AL FINAL ---
-# En produccion/forms.py
-
 class ControlProcesoForm(forms.ModelForm):
     class Meta:
         model = ControlProceso
-        # Esta línea mágica le dice a Django que use todos los campos del modelo
         fields = '__all__'
-        widgets = {
-            # Aquí puedes mantener los widgets que ya tenías para darle estilo
-            'orden_produccion': forms.Select(attrs={'class': 'form-control'}),
-            'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'maquina': forms.TextInput(attrs={'class': 'form-control'}),
-            'operario': forms.TextInput(attrs={'class': 'form-control'}),
-            'hora_inicio': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
-            'hora_final': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
-            'pliegos_buenos': forms.NumberInput(attrs={'class': 'form-control'}),
-            'pliegos_malos': forms.NumberInput(attrs={'class': 'form-control'}),
-            'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-        }
+        # ... (puedes añadir widgets si los necesitas)
 
 class ReporteDiarioForm(forms.ModelForm):
     class Meta:
         model = ReporteDiarioProductoTerminado
         fields = '__all__'
-        widgets = {
-            'nombre_encargado': forms.TextInput(attrs={'class': 'form-control'}),
-            'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'turno': forms.TextInput(attrs={'class': 'form-control'}),
-            'elaborado_por': forms.TextInput(attrs={'class': 'form-control'}),
-            'revisado_por': forms.TextInput(attrs={'class': 'form-control'}),
-        }
+        # ... (puedes añadir widgets si los necesitas)
 
 class NotaIngresoForm(forms.ModelForm):
     class Meta:
         model = NotaIngresoProductoTerminado
         fields = '__all__'
-        widgets = {
-            'numero_nota': forms.TextInput(attrs={'class': 'form-control'}),
-            'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'elaborado_por': forms.TextInput(attrs={'class': 'form-control'}),
-            'recibido_por': forms.TextInput(attrs={'class': 'form-control'}),
-        }
+        # ... (puedes añadir widgets si los necesitas)
 
+# --- FORMULARIOS PARA CORTE DE BOBINA ---
+
+# En produccion/forms.py
+
+# En produccion/forms.py
 # En produccion/forms.py
 
 class CorteDeBobinaForm(forms.ModelForm):
     class Meta:
         model = CorteDeBobina
-        #fields = ['numero_reporte', 'fecha', 'nombre_operario', 'ancho_bobina', 'medida_de_corte']
-        # AÑADE 'orden_produccion' A ESTA LISTA
-        fields = ['orden_produccion', 'numero_reporte', 'fecha', 'nombre_operario', 'ancho_bobina', 'medida_de_corte']
+        fields = [
+            'orden_produccion', 'numero_reporte', 'fecha', 
+            'nombre_operario', 'ancho_bobina', 'medida_de_corte'
+        ]
         widgets = {
-            # ... tus otros widgets ...
+            'orden_produccion': forms.Select(attrs={'class': 'form-control'}),
+            'numero_reporte': forms.TextInput(attrs={'class': 'form-control'}),
             'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'nombre_operario': forms.TextInput(attrs={'class': 'form-control'}),
+            'ancho_bobina': forms.TextInput(attrs={'class': 'form-control'}),
+            'medida_de_corte': forms.TextInput(attrs={'class': 'form-control'}),
         }
+    # La función __init__ que teníamos aquí se ha eliminado.
 
-    # --- AÑADE ESTE MÉTODO ---
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Si el formulario es para un objeto nuevo (no para editar uno existente)
-        if not self.instance.pk:
-            # Ponemos la fecha de hoy como valor inicial
-            self.fields['fecha'].initial = date.today()
+
+# En produccion/forms.py
+# --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
 
 class CorteDeBobinaDetalleForm(forms.ModelForm):
+    
+    def __init__(self, *args, **kwargs):
+        """
+        Este es el truco mágico. Se ejecuta cuando se crea el formulario.
+        """
+        super().__init__(*args, **kwargs)
+        
+        # 1. Verificamos si estamos editando un objeto que ya existe
+        if self.instance and self.instance.pk:
+            
+            # 2. Si hay un código de bobina guardado...
+            if self.instance.codigo_bobina_usada:
+                # ...lo ponemos como la única opción en el dropdown.
+                self.fields['codigo_bobina_usada'].widget.choices = [
+                    (self.instance.codigo_bobina_usada, self.instance.codigo_bobina_usada)
+                ]
+            
+            # 3. Hacemos lo mismo para el primer pliego producido
+            if self.instance.codigo_pliego_producido_1:
+                self.fields['codigo_pliego_producido_1'].widget.choices = [
+                    (self.instance.codigo_pliego_producido_1, self.instance.codigo_pliego_producido_1)
+                ]
+
+            # 4. Y también para el segundo pliego producido
+            if self.instance.codigo_pliego_producido_2:
+                self.fields['codigo_pliego_producido_2'].widget.choices = [
+                    (self.instance.codigo_pliego_producido_2, self.instance.codigo_pliego_producido_2)
+                ]
+
     class Meta:
         model = CorteDeBobinaDetalle
-        fields = ['codigo_bobina', 'pliegos', 'resmas', 'observaciones']
+        fields = [
+            'codigo_bobina_usada',
+            'codigo_pliego_producido_1', 'cantidad_pliegos_1', 'resmas_producidas_1',
+            'codigo_pliego_producido_2', 'cantidad_pliegos_2', 'resmas_producidas_2',
+            'observaciones',
+        ]
+        # Esta parte se asegura que los campos tengan la clase CSS correcta
+        # para que el JavaScript los encuentre.
         widgets = {
-            # Usamos un <select> para que Select2 funcione correctamente
-            'codigo_bobina': forms.Select(attrs={'class': 'form-control bobina-search', 'style': 'width: 100%;'}),
-            'pliegos': forms.NumberInput(attrs={'class': 'form-control'}),
-            'resmas': forms.NumberInput(attrs={'class': 'form-control'}),
+            'codigo_bobina_usada': forms.Select(attrs={'class': 'form-control bobina-search'}),
+            'codigo_pliego_producido_1': forms.Select(attrs={'class': 'form-control papel-search'}),
+            'codigo_pliego_producido_2': forms.Select(attrs={'class': 'form-control papel-search'}),
+            'cantidad_pliegos_1': forms.NumberInput(attrs={'class': 'form-control'}),
+            'resmas_producidas_1': forms.NumberInput(attrs={'class': 'form-control'}),
+            'cantidad_pliegos_2': forms.NumberInput(attrs={'class': 'form-control'}),
+            'resmas_producidas_2': forms.NumberInput(attrs={'class': 'form-control'}),
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-        }                             
+        }
+
+
+
+# Formulario para "EDITAR" con campos de texto simples
+class CorteDeBobinaDetalleFormEditar(forms.ModelForm):
+    class Meta:
+        model = CorteDeBobinaDetalle
+        fields = '__all__'
+        exclude = ('corte_de_bobina',)
+        widgets = {
+            'codigo_bobina_usada': forms.TextInput(attrs={'class': 'form-control'}),
+            'codigo_pliego_producido_1': forms.TextInput(attrs={'class': 'form-control'}),
+            'codigo_pliego_producido_2': forms.TextInput(attrs={'class': 'form-control'}),
+            'cantidad_pliegos_1': forms.NumberInput(attrs={'class': 'form-control'}),
+            'resmas_producidas_1': forms.NumberInput(attrs={'class': 'form-control'}),
+            'cantidad_pliegos_2': forms.NumberInput(attrs={'class': 'form-control'}),
+            'resmas_producidas_2': forms.NumberInput(attrs={'class': 'form-control'}),
+            'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
