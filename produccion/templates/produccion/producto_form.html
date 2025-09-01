@@ -1,0 +1,131 @@
+{% extends 'produccion/base.html' %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Producto{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Producto</h3>
+    </div>
+    <div class="card-body">
+        <form method="POST" id="producto-form">
+            {% csrf_token %}
+            
+            <!-- Formulario Principal -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label"><b>{{ form.codigo.label }}</b></label>
+                        {{ form.codigo }}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label"><b>{{ form.nombre.label }}</b></label>
+                        <div class="position-relative">
+                            {{ form.nombre }}
+                            <button type="button" id="verificar-producto" class="btn btn-outline-primary btn-sm position-absolute top-50 end-0 translate-middle-y me-2">
+                                <i class="fas fa-search"></i> Verificar
+                            </button>
+                        </div>
+                        
+                        <!-- Resultado de la búsqueda -->
+                        <div id="resultado-busqueda" class="mt-2" style="display: none;">
+                            <div id="producto-encontrado" class="alert alert-warning" style="display: none;">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Producto existente:</strong> 
+                                <span id="producto-existente-info"></span>
+                            </div>
+                            <div id="producto-no-encontrado" class="alert alert-info" style="display: none;">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Producto no encontrado.</strong> Puedes crear un nuevo producto con este nombre.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campo tipo (nombre3) -->
+            <div class="row" id="tipo-container">
+                <div class="col-md-12">
+                    <div class="mb-3">
+                        <label class="form-label"><b>{{ form.nombre3.label }}</b></label>
+                        <div class="row">
+                            {% for choice in form.nombre3 %}
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    {{ choice.tag }}
+                                    <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                        <i class="fas fa-{% if choice.choice_label == 'Bobina' %}circle{% elif choice.choice_label == 'Papel' %}file-alt{% else %}flask{% endif %} me-2"></i>
+                                        {{ choice.choice_label }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <hr>
+            <button type="submit" class="btn btn-primary">Guardar Producto</button>
+            <a href="{% url 'lista_productos' %}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // URL Template para el botón de editar
+    const editUrlTemplate = "{% url 'editar_producto' pk=0 %}";
+
+    $('#verificar-producto').click(function() {
+        var codigo = $('#id_codigo').val();
+        var nombre = $('#id_nombre').val();
+        
+        if (!codigo && !nombre) {
+            alert('Ingresa al menos el código o el nombre del producto.');
+            return;
+        }
+        
+        $(this).html('<i class="fas fa-spinner fa-spin"></i> Verificando...');
+        $(this).prop('disabled', true);
+        
+        $.ajax({
+            url: "{% url 'verificar_producto_api' %}",
+            type: 'GET',
+            data: { 'codigo': codigo, 'nombre': nombre },
+            success: function(response) {
+                $('#resultado-busqueda .mt-2').remove();
+                $('#resultado-busqueda').show();
+                
+                if (response.existe) {
+                    $('#producto-encontrado').show();
+                    $('#producto-no-encontrado').hide();
+                    $('#producto-existente-info').text(response.codigo + ' | ' + response.nombre + ' (' + response.tipo + ')');
+                    
+                    if (response.id) {
+                        const finalEditUrl = editUrlTemplate.replace('0', response.id);
+                        $('#resultado-busqueda').append(
+                            '<div class="mt-2"><a href="' + finalEditUrl + '" class="btn btn-warning btn-sm">' +
+                            '<i class="fas fa-edit me-1"></i>Editar producto existente</a></div>'
+                        );
+                    }
+                } else {
+                    $('#producto-encontrado').hide();
+                    $('#producto-no-encontrado').show();
+                }
+            },
+            error: function() { alert('Error al verificar el producto. Intenta de nuevo.'); },
+            complete: function() {
+                $('#verificar-producto').html('<i class="fas fa-search"></i> Verificar');
+                $('#verificar-producto').prop('disabled', false);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+

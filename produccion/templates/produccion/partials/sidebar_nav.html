@@ -1,0 +1,17 @@
+<ul class="nav flex-column">
+    <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}"><i class="bi bi-grid-1x2"></i> Dashboard</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'crear_corte' %}"><i class="bi bi-scissors"></i> Nuevo Corte de Bobina</a></li>
+    <li class="nav-item ps-4"><a class="nav-link" href="{% url 'lista_cortes' %}">Ver Reportes de Corte</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'lista_ordenes' %}"><i class="bi bi-list-check"></i> Órdenes de Producción</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'lista_requisiciones' %}"><i class="bi bi-journal-text"></i> Requisiciones</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'lista_controles' %}"><i class="bi bi-sliders"></i> Controles de Proceso</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'lista_reportes_diarios' %}"><i class="bi bi-calendar-check"></i> Reportes Diarios</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'lista_notas_ingreso' %}"><i class="bi bi-box-arrow-in-down"></i> Notas de Ingreso</a></li>
+    <li class="nav-item">
+        <a class="nav-link {% if request.resolver_match.url_name in 'lista_productos,crear_producto,editar_producto' %}active{% endif %}" href="{% url 'lista_productos' %}">
+            <i class="fas fa-dolly-flatbed"></i>Gestión de Productos
+        </a>
+    </li>
+    <li class="nav-item"><a class="nav-link"><i class="bi bi-graph-up"></i> Reportes</a></li>
+    <li class="nav-item ps-4"><a class="nav-link" href="{% url 'reporte_kardex' %}"><i class="fas fa-box"></i> Kardex por Producto</a></li>
+</ul>

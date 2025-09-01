@@ -161,38 +161,54 @@ class NotaIngresoDetalle(models.Model):
 
 # En produccion/models.py
 
-class Producto(models.Model):
-    # Le decimos a Django que la llave primaria se llama 'orden'.
-    # Usamos BigAutoField porque numeric(14,0) es un número grande que se auto-incrementa.
-    # Esto reemplaza el campo 'id' que Django crea por defecto.
-    orden = models.BigAutoField(primary_key=True)
+#30082025
+# ==============================================================================
+# Manager Personalizado para Productos
+# Su única misión es filtrar TODAS las consultas por idsucursal = 10
+# ==============================================================================
+class ProductoManager(models.Manager):
+    def get_queryset(self):
+        # Llama al queryset original y le añade el filtro permanente.
+        return super().get_queryset().filter(idsucursal=10)
 
-    # El resto de los campos que ya definiste
+# ==============================================================================
+# Modelo Producto (Ajustado a tu estructura funcional)
+# ==============================================================================
+class Producto(models.Model):
+    # Usamos el campo 'orden' que nos proporcionaste como llave primaria.
+    orden = models.BigAutoField(primary_key=True)
+    
     codigo = models.CharField(max_length=30, unique=True, verbose_name="Codigo")
     nombre = models.CharField(max_length=255, verbose_name="Nombre del Producto")
-    # --- AGREGA ESTA LÍNEA ---
+    # Este es el campo que usaremos para el tipo de producto.
     nombre3 = models.CharField(max_length=50, blank=True, null=True)
     cantidad = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    idsucursal = models.IntegerField()
+    idsucursal = models.IntegerField(editable=False) # No será editable en formularios.
+
+    # Conectamos nuestro Manager personalizado al modelo.
+    # Ahora, Producto.objects.all() se convertirá en SELECT * FROM productos WHERE idsucursal=10;
+    objects = ProductoManager()
+    
+    # Manager por defecto para casos donde necesitemos saltar el filtro (raro)
+    all_objects = models.Manager()
 
     class Meta:
         managed = False
-        db_table = 'productos' # El nombre real de tu tabla en RQ
+        db_table = 'productos' # El nombre real de tu tabla
 
     def __str__(self):
         return f"{self.codigo} - {self.nombre}"
-    #regi_orden
-class Kardex(models.Model):
-    # Este único campo ahora representa AMBAS cosas:
-    # 1. La relación con el Producto (ForeignKey).
-    # 2. La llave primaria de esta tabla (primary_key=True).
-    # 3. Le decimos que la columna en la BD se llama 'regi_orden' (db_column='regi_orden').
-    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, primary_key=True, db_column='regi_orden')
 
-    # El resto de los campos permanecen igual
+# ==============================================================================
+# Modelo Kardex (Ajustado a tu estructura funcional)
+# ==============================================================================
+class Kardex(models.Model):
+    # La relación con Producto, que también es la llave primaria de Kardex.
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, primary_key=True, db_column='regi_orden')
+    
     codigo = models.CharField(max_length=30, blank=True, null=True)
     fecha = models.DateTimeField(auto_now_add=True)
-    documento = models.CharField(max_length=100, blank=True, null=True, verbose_name="DocumentodeReferencia")
+    documento = models.CharField(max_length=100, blank=True, null=True, verbose_name="Documento de Referencia")
     descripcion = models.CharField(max_length=255, blank=True, null=True)
     entrada = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     salida = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -204,4 +220,6 @@ class Kardex(models.Model):
         db_table = 'kardex'
 
     def __str__(self):
-        return f"Movimiento de {self.producto.nombre} el {self.fecha.strftime('%Y-%m-%d')}" 
+        return f"Movimiento de {self.producto.nombre} el {self.fecha.strftime('%Y-%m-%d')}"
+
+       

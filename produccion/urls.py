@@ -59,4 +59,17 @@ urlpatterns = [
     # --- AGREGA ESTA LÍNEA ---
     path('api/buscar-papel/', views.buscar_papel_api, name='buscar_papel_api'),
     # ...
+
+    #30082025
+    # URLs para el CRUD de Productos
+    path('productos/', views.lista_productos, name='lista_productos'),
+    path('productos/nuevo/', views.crear_producto, name='crear_producto'),
+    path('productos/<int:pk>/editar/', views.editar_producto, name='editar_producto'),
+
+    # URL para la API de verificación (AJAX)
+    path('api/verificar-producto/', views.verificar_producto_api, name='verificar_producto_api'),
+
+    # --- AÑADE ESTA NUEVA LÍNEA ---
+    path('api/buscar-productos/', views.buscar_productos_api, name='buscar_productos_api'),
+
 ]

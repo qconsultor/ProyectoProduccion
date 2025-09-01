@@ -10,7 +10,8 @@ from .models import (
     ReporteDiarioProductoTerminado, 
     NotaIngresoProductoTerminado,
     CorteDeBobina, 
-    CorteDeBobinaDetalle
+    CorteDeBobinaDetalle,
+    Producto
 )
 
 # --- FORMULARIOS PRINCIPALES ---
@@ -155,4 +156,36 @@ class CorteDeBobinaDetalleFormEditar(forms.ModelForm):
             'cantidad_pliegos_2': forms.NumberInput(attrs={'class': 'form-control'}),
             'resmas_producidas_2': forms.NumberInput(attrs={'class': 'form-control'}),
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+
+#30082025
+class ProductoForm(forms.ModelForm):
+    # Hacemos que 'nombre3' (el tipo) sea un campo de selección claro.
+    # Este campo se mostrará en el formulario como 'Tipo de Producto'.
+    nombre3 = forms.ChoiceField(
+        label="Tipo de Producto",
+        choices=[
+            ('BOBINA', 'Bobina'),
+            ('PAPEL', 'Papel'),
+            ('QUIMICO', 'Químico'),
+            # Puedes añadir más opciones si las necesitas
+        ],
+        # Usamos RadioSelect para que se vea como botones de opción.
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
+    )
+
+    class Meta:
+        model = Producto
+        # Definimos los campos que el usuario podrá llenar.
+        # 'orden', 'cantidad' e 'idsucursal' se manejarán automáticamente en la vista.
+        fields = ['codigo', 'nombre', 'nombre3']
+        widgets = {
+            'codigo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Código único del producto'
+            }),
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre descriptivo del producto'
+            }),
         }

@@ -13,7 +13,7 @@ from .models import (
     Producto, Kardex
 )
 #from .forms import OrdenProduccionForm, RequisicionForm
-from .forms import OrdenProduccionForm, RequisicionForm, ControlProcesoForm , ReporteDiarioForm , NotaIngresoForm, CorteDeBobinaForm, CorteDeBobinaDetalleForm, CorteDeBobinaDetalleFormEditar
+from .forms import OrdenProduccionForm, RequisicionForm, ControlProcesoForm , ReporteDiarioForm , NotaIngresoForm, CorteDeBobinaForm, CorteDeBobinaDetalleForm, CorteDeBobinaDetalleFormEditar,ProductoForm
 
 #dashboard
 # En produccion/views.py
@@ -333,64 +333,142 @@ def eliminar_nota_ingreso(request, nota_id):
 
     
 
+# def reporte_kardex(request):
+#     codigo_buscado = request.GET.get('codigo_producto', '')
+#     # --- NUEVO: Obtenemos las fechas del formulario ---
+#     fecha_desde = request.GET.get('fecha_desde', '')
+#     fecha_hasta = request.GET.get('fecha_hasta', '')
+
+#     movimientos = None
+
+#     if codigo_buscado:
+#         # Empezamos filtrando por el código del producto
+#         movimientos = Kardex.objects.using('rq').filter(codigo=codigo_buscado)
+
+#         # --- NUEVO: Si hay fechas, añadimos más filtros a la consulta ---
+#         if fecha_desde:
+#             # __date__gte = la FECHA del campo sea "mayor o igual que"
+#             movimientos = movimientos.filter(fecha__date__gte=fecha_desde)
+
+#         if fecha_hasta:
+#             # __date__lte = la FECHA del campo sea "menor o igual que"
+#             movimientos = movimientos.filter(fecha__date__lte=fecha_hasta)
+
+#         # Ordenamos el resultado final
+#         movimientos = movimientos.order_by('fecha')
+
+#     contexto = {
+#         'movimientos': movimientos,
+#         'codigo_buscado': codigo_buscado,
+#         # --- NUEVO: Devolvemos las fechas a la plantilla para que las "recuerde" ---
+#         'fecha_desde_valor': fecha_desde,
+#         'fecha_hasta_valor': fecha_hasta,
+#     }
+#     return render(request, 'produccion/reporte_kardex.html', contexto)
+#31082025
+# def reporte_kardex(request):
+#     codigo_buscado = request.GET.get('codigo_producto', '')
+#     fecha_desde = request.GET.get('fecha_desde', '')
+#     fecha_hasta = request.GET.get('fecha_hasta', '')
+
+#     movimientos = None
+
+#     if codigo_buscado:
+#         # --- LÍNEA CORREGIDA ---
+#         # Ahora filtramos por el 'codigo' del 'producto' relacionado.
+#         movimientos = Kardex.objects.using('rq').filter(producto__codigo=codigo_buscado)
+#         # -------------------------
+
+#         if fecha_desde:
+#             movimientos = movimientos.filter(fecha__date__gte=fecha_desde)
+
+#         if fecha_hasta:
+#             movimientos = movimientos.filter(fecha__date__lte=fecha_hasta)
+
+#         # --- AÑADE ESTA LÍNEA PARA DEPURAR ---
+#         print("SQL GENERADO:", movimientos.query)
+#         # ------------------------------------
+
+#         movimientos = movimientos.order_by('fecha')
+
+#     contexto = {
+#         'movimientos': movimientos,
+#         'codigo_buscado': codigo_buscado,
+#         'fecha_desde_valor': fecha_desde,
+#         'fecha_hasta_valor': fecha_hasta,
+#     }
+#     return render(request, 'produccion/reporte_kardex.html', contexto)
+#3108205 SEGUNDA DE ESTE DIA 
+
+# En produccion/views.py
+
+# En produccion/views.py
+
+# En produccion/views.py
+
 def reporte_kardex(request):
     codigo_buscado = request.GET.get('codigo_producto', '')
-    # --- NUEVO: Obtenemos las fechas del formulario ---
     fecha_desde = request.GET.get('fecha_desde', '')
     fecha_hasta = request.GET.get('fecha_hasta', '')
 
-    movimientos = None
+    movimientos = Kardex.objects.none() 
 
     if codigo_buscado:
-        # Empezamos filtrando por el código del producto
-        movimientos = Kardex.objects.using('rq').filter(codigo=codigo_buscado)
+        codigos_validos = set(Producto.objects.using('rq').values_list('codigo', flat=True))
 
-        # --- NUEVO: Si hay fechas, añadimos más filtros a la consulta ---
-        if fecha_desde:
-            # __date__gte = la FECHA del campo sea "mayor o igual que"
-            movimientos = movimientos.filter(fecha__date__gte=fecha_desde)
+        if codigo_buscado in codigos_validos:
+            # Usamos TRIM para eliminar espacios en blanco del campo de la base de datos antes de comparar
+            where_conditions = [
+                f"TRIM(productos.codigo) = '{codigo_buscado}'"
+            ]
 
-        if fecha_hasta:
-            # __date__lte = la FECHA del campo sea "menor o igual que"
-            movimientos = movimientos.filter(fecha__date__lte=fecha_hasta)
+            if fecha_desde:
+                where_conditions.append(f"CAST(kardex.fecha AS date) >= '{fecha_desde}'")
 
-        # Ordenamos el resultado final
-        movimientos = movimientos.order_by('fecha')
+            if fecha_hasta:
+                where_conditions.append(f"CAST(kardex.fecha AS date) <= '{fecha_hasta}'")
+
+            final_where_clause = " AND ".join(where_conditions)
+
+            movimientos = Kardex.objects.using('rq').select_related('producto').extra(
+                where=[final_where_clause]
+            ).order_by('fecha')
 
     contexto = {
         'movimientos': movimientos,
         'codigo_buscado': codigo_buscado,
-        # --- NUEVO: Devolvemos las fechas a la plantilla para que las "recuerde" ---
         'fecha_desde_valor': fecha_desde,
         'fecha_hasta_valor': fecha_hasta,
     }
     return render(request, 'produccion/reporte_kardex.html', contexto)
+
+#31082025558pm
+# PEGA ESTA FUNCIÓN DE VUELTA EN TU views.py
+
 def reporte_kardex_imprimir(request):
     codigo_buscado = request.GET.get('codigo_producto', '')
     fecha_desde = request.GET.get('fecha_desde', '')
     fecha_hasta = request.GET.get('fecha_hasta', '')
-    
+
     movimientos = None
     producto = None
 
     if codigo_buscado:
-        # Aquí filtramos los movimientos
-        movimientos = Kardex.objects.using('rq').filter(codigo=codigo_buscado, idsucursal=10)
-        
-        # Y aquí corregimos la búsqueda del producto
+        # Usamos la misma lógica corregida de la vista principal
+        movimientos = Kardex.objects.using('rq').filter(producto__codigo__exact=codigo_buscado)
+
         try:
-            # --- LÍNEA CORREGIDA ---
-            producto = Producto.objects.using('rq').get(codigo=codigo_buscado, idsucursal=10)
+            # Buscamos el objeto producto para mostrar su nombre en la impresión
+            producto = Producto.objects.using('rq').get(codigo=codigo_buscado)
         except (Producto.DoesNotExist, Producto.MultipleObjectsReturned):
-            # Si no se encuentra o hay duplicados (aunque no debería pasar ya), lo manejamos
             producto = None
 
         if fecha_desde:
             movimientos = movimientos.filter(fecha__date__gte=fecha_desde)
-        
+
         if fecha_hasta:
             movimientos = movimientos.filter(fecha__date__lte=fecha_hasta)
-        
+
         movimientos = movimientos.order_by('fecha')
 
     contexto = {
@@ -585,3 +663,135 @@ def buscar_papel_api(request):
         })
     return JsonResponse(resultados, safe=False)
 
+#30082025
+# def lista_productos(request):
+#     """
+#     Muestra una lista de todos los productos de la sucursal 10.
+#     El Manager personalizado que definimos en models.py se encarga del filtro.
+#     """
+#     productos = Producto.objects.all()
+#     return render(request, 'produccion/producto_lista.html', {'productos': productos})
+#31082025
+# En produccion/views.py
+
+def lista_productos(request):
+    """
+    Muestra una lista de productos, permitiendo filtrar por el campo 'nombre3'.
+    """
+    # 1. Obtener el valor del filtro desde la URL. 
+    #    Ej: /productos/?filtro_tipo=BOBINA
+    filtro_seleccionado = request.GET.get('filtro_tipo', '')
+
+    # 2. Obtener la lista única de todos los tipos de producto (nombre3) para el dropdown
+    tipos_productos = Producto.objects.order_by('nombre3').values_list('nombre3', flat=True).distinct()
+
+    # 3. Empezar con todos los productos
+    productos = Producto.objects.all()
+
+    # 4. Si se seleccionó un filtro válido, aplicar el filtro a la consulta
+    if filtro_seleccionado and filtro_seleccionado != "":
+        productos = productos.filter(nombre3=filtro_seleccionado)
+
+    contexto = {
+        'productos': productos,
+        'tipos_productos': tipos_productos, # <-- Pasamos la lista de tipos al template
+        'filtro_seleccionado': filtro_seleccionado # <-- Pasamos el filtro actual para "recordarlo"
+    }
+    return render(request, 'produccion/producto_lista.html', contexto)
+
+
+def crear_producto(request):
+    """
+    Crea un nuevo producto en la sucursal 10.
+    """
+    if request.method == 'POST':
+        form = ProductoForm(request.POST)
+        if form.is_valid():
+            # Guardamos el objeto en memoria sin enviarlo a la BD todavía
+            producto = form.save(commit=False)
+            
+            # Asignamos los valores por defecto que no están en el formulario
+            producto.idsucursal = 10
+            producto.cantidad = 0
+            
+            # Ahora sí, guardamos el nuevo producto en la base de datos
+            producto.save()
+            return redirect('lista_productos')
+    else:
+        form = ProductoForm()
+    
+    # Pasamos un 'form' vacío para un producto nuevo
+    return render(request, 'produccion/producto_form.html', {'form': form})
+
+def editar_producto(request, pk):
+    """
+    Edita un producto existente de la sucursal 10.
+    La llave primaria 'pk' ahora corresponde al campo 'orden'.
+    """
+    # get_object_or_404 usará el manager y solo encontrará productos de la sucursal 10
+    producto = get_object_or_404(Producto, pk=pk)
+    
+    if request.method == 'POST':
+        form = ProductoForm(request.POST, instance=producto)
+        if form.is_valid():
+            form.save()
+            return redirect('lista_productos')
+    else:
+        # Pasamos la instancia del producto para pre-llenar el formulario
+        form = ProductoForm(instance=producto)
+        
+    return render(request, 'produccion/producto_form.html', {'form': form})
+
+def verificar_producto_api(request):
+    """
+    API para verificar si un producto ya existe por código o nombre en la sucursal 10.
+    """
+    codigo = request.GET.get('codigo')
+    nombre = request.GET.get('nombre')
+    
+    # La consulta ya está filtrada por idsucursal=10 gracias al manager.
+    producto_existente = Producto.objects.filter(Q(codigo__iexact=codigo) | Q(nombre__iexact=nombre)).first()
+
+    if producto_existente:
+        data = {
+            'existe': True,
+            'id': producto_existente.pk, # El pk es el campo 'orden'
+            'codigo': producto_existente.codigo,
+            'nombre': producto_existente.nombre,
+            'tipo': producto_existente.nombre3 # El tipo ahora es 'nombre3'
+        }
+    else:
+        data = {'existe': False}
+    
+    return JsonResponse(data)
+
+#31082025
+# Al final de produccion/views.py
+
+def buscar_productos_api(request):
+    """
+    API para buscar CUALQUIER producto por código o nombre.
+    Devuelve resultados en el formato que espera la librería Select2.
+    """
+    # Obtenemos el término de búsqueda que envía el JavaScript de Select2
+    query = request.GET.get('term', '').strip()
+
+    # Si no hay término de búsqueda, devolvemos una lista vacía
+    if not query:
+        return JsonResponse({'results': []})
+
+    # Buscamos productos cuyo código O nombre contengan el texto buscado
+    # Usamos el manager 'objects' que ya filtra por sucursal 10
+    productos_encontrados = Producto.objects.filter(
+        Q(codigo__icontains=query) | Q(nombre__icontains=query)
+    ).order_by('nombre')[:20] # Limitamos a 20 resultados por rendimiento
+
+    # Formateamos los resultados como lo necesita Select2
+    resultados = []
+    for producto in productos_encontrados:
+        resultados.append({
+            'id': producto.codigo,  # El valor que se enviará en el formulario
+            'text': f"{producto.codigo} | {producto.nombre}" # El texto que verá el usuario
+        })
+
+    return JsonResponse({'results': resultados})
