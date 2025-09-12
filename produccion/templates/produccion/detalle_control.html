@@ -1,36 +1,42 @@
 {% extends 'produccion/base.html' %}
 
-{% block title %}Detalle de Control: {{ control.nombre_del_libro }}{% endblock %}
+{% block title %}Detalle de Control de Proceso{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1>Detalle: {{ control.nombre_del_libro }}</h1>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 m-0">Detalle: {{ control.nombre_del_libro }}</h1>
         <div>
-            <a href="{% url 'editar_control' control.id %}" class="btn btn-secondary btn-sm">Editar</a>
-            <a href="{% url 'lista_controles' %}" class="btn btn-outline-secondary btn-sm">&laquo; Volver a la lista</a>
+            <a href="{% url 'editar_control' control.pk %}" class="btn btn-primary">
+                <i class="fas fa-edit me-2"></i>Editar
+            </a>
+            <a href="{% url 'lista_controles' %}" class="btn btn-secondary">« Volver a la lista</a>
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header">
-            Información General
-        </div>
+    <!-- Información General -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header"><h5 class="m-0">Información General</h5></div>
         <div class="card-body">
             <dl class="row">
-                <dt class="col-sm-3">Temporada/Año:</dt><dd class="col-sm-9">{{ control.temporada_anio }}</dd>
-                <dt class="col-sm-3">Tiraje:</dt><dd class="col-sm-9">{{ control.tiraje }}</dd>
-                <dt class="col-sm-3">Cantidad:</dt><dd class="col-sm-9">{{ control.cantidad }}</dd>
+                <dt class="col-sm-3">Temporada/Año:</dt>
+                <dd class="col-sm-9">{{ control.temporada_anio }}</dd>
+
+                <dt class="col-sm-3">Tiraje:</dt>
+                <dd class="col-sm-9">{{ control.tiraje }}</dd>
+
+                <dt class="col-sm-3">Cantidad:</dt>
+                <dd class="col-sm-9">{{ control.cantidad|default:"-" }}</dd>
             </dl>
         </div>
     </div>
 
-    <div class="card mt-4">
-        <div class="card-header">
-            Detalles del Proceso Registrados
-        </div>
-        <div class="card-body">
-            <table class="table table-sm table-hover table-bordered text-center">
-                <thead class="table-light">
+    <!-- Detalles del Proceso -->
+    <div class="card shadow-sm">
+        <div class="card-header"><h5 class="m-0">Detalles del Proceso Registrados</h5></div>
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+                <thead class="table-light text-center">
                     <tr>
                         <th rowspan="2" class="align-middle">Fecha</th>
                         <th rowspan="2" class="align-middle">Turno</th>
@@ -48,26 +54,28 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for detalle in control.detalles.all %}
+                    {% for detalle in detalles %}
                     <tr>
-                        <td>{{ detalle.fecha }}</td>
-                        <td>{{ detalle.turno }}</td>
-                        <td>{{ detalle.compaginado|default_if_none:"-" }}</td>
-                        <td>{{ detalle.doblado_libro|default_if_none:"-" }}</td>
-                        <td>{{ detalle.doblado_portada|default_if_none:"-" }}</td>
-                        <td>{{ detalle.engrapado|default_if_none:"-" }}</td>
-                        <td>{{ detalle.pegado|default_if_none:"-" }}</td>
-                        <td>{{ detalle.refilado|default_if_none:"-" }}</td>
-                        <td>{{ detalle.empacado|default_if_none:"-" }}</td>
-                        <td>{{ detalle.unidades|default_if_none:"-" }}</td>
+                        <td>{{ detalle.fecha|date:"F j, Y" }}</td>
+                        <td class="text-center">{{ detalle.turno }}</td>
+                        <td class="text-center">{{ detalle.compaginado|default:"-" }}</td>
+                        <td class="text-center">{{ detalle.doblado_libro|default:"-" }}</td>
+                        <td class="text-center">{{ detalle.doblado_portada|default:"-" }}</td>
+                        <td class="text-center">{{ detalle.engrapado|default:"-" }}</td>
+                        <td class="text-center">{{ detalle.pegado|default:"-" }}</td>
+                        <td class="text-center">{{ detalle.refilado|default:"-" }}</td>
+                        <td class="text-center">{{ detalle.empacado|default:"-" }}</td>
+                        <td class="text-center">{{ detalle.unidades|default:"-" }}</td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="10" class="text-center">No se han agregado detalles de proceso para este control.</td>
+                        <td colspan="10" class="text-center py-4">No hay detalles registrados para este proceso.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+</div>
 {% endblock %}
+

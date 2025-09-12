@@ -1,0 +1,71 @@
+{% extends 'produccion/base.html' %}
+
+{% block title %}Detalle de Movimiento{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 m-0">Detalle de Movimiento</h1>
+        <a href="{% url 'lista_movimientos' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver a la Lista
+        </a>
+    </div>
+
+    {% if encabezado %}
+    <!-- Tarjeta con la información general del documento -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <h6 class="text-muted">Documento</h6>
+                    <p class="fs-5"><strong>{{ encabezado.documento }}</strong></p>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-muted">Fecha</h6>
+                    <p class="fs-5">{{ encabezado.fecha|date:"Y-m-d h:i A" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tarjeta con la lista de productos movidos -->
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="m-0">Productos Incluidos</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Código</th>
+                        <th>Producto</th>
+                        <th>Descripción / Nota</th>
+                        <th class="text-end">Cantidad Movida</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in detalles %}
+                    <tr>
+                        <td><span class="font-monospace">{{ item.codigo }}</span></td>
+                        <td>{{ item.producto.nombre }}</td>
+                        <td>{{ item.descripcion }}</td>
+                        <td class="text-end fw-bold">
+                            {% if item.entrada > 0 %}
+                                <span class="text-success">+ {{ item.entrada|floatformat:2 }}</span>
+                            {% else %}
+                                <span class="text-danger">- {{ item.salida|floatformat:2 }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">No se encontró el movimiento solicitado.</div>
+    {% endif %}
+
+</div>
+{% endblock %}
+

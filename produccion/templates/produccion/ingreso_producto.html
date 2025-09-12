@@ -1,0 +1,139 @@
+{% extends 'produccion/base.html' %}
+
+{% block title %}Registrar Movimiento de Inventario{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 m-0">Registrar Movimiento de Inventario</h1>
+    </div>
+
+    <div class="row">
+        <!-- 2. AJUSTE DE ANCHO: Se eliminó la clase 'mx-auto' para alinear a la izquierda -->
+        <div class="col-lg-10 col-xl-8">
+            <form method="POST" action="{% url 'ingreso_producto' %}" id="ingreso-form">
+                {% csrf_token %}
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <!-- Buscador de Productos -->
+                            <div class="col-md-12">
+                                <label for="producto-search" class="form-label fw-bold">1. Buscar Producto</label>
+                                <select name="producto_codigo" id="producto-search" class="form-control" required style="width: 100%;"></select>
+                            </div>
+
+                            <!-- Información del Producto -->
+                            <div class="col-md-7"><label class="form-label">Nombre:</label><p id="nombre-producto" class="form-control-plaintext">-</p></div>
+                            <div class="col-md-5"><label class="form-label">Existencia Actual:</label><p id="existencia-actual" class="form-control-plaintext fw-bold h5 text-primary">-</p></div>
+
+                            <hr class="my-3">
+
+                            <!-- Campos para el Movimiento -->
+                            <div class="col-md-4">
+                                <label for="tipo_documento" class="form-label fw-bold">2. Tipo de Documento</label>
+                                <select name="tipo_documento" id="tipo_documento" class="form-select">
+                                    <option value="INGRESO">Ingreso</option>
+                                    <option value="AJUSTE">Ajuste de Inventario</option>
+                                    <option value="DEVOLUCION">Devolución</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="numero_ref_display" class="form-label fw-bold">N° de Referencia</label>
+                                <input type="text" id="numero_ref_display" class="form-control" readonly>
+                                <input type="hidden" name="numero_referencia" id="numero_ref_hidden">
+                            </div>
+                             <div class="col-md-4">
+                                <label for="fecha" class="form-label fw-bold">Fecha</label>
+                                <input type="date" name="fecha" id="fecha" class="form-control" value="{{ today_date }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="cantidad" class="form-label fw-bold">3. Cantidad a Ingresar</label>
+                                <input type="number" step="0.01" min="0.01" name="cantidad" id="cantidad" class="form-control" required>
+                            </div>
+                            <div class="col-md-12">
+                                <label for="descripcion" class="form-label fw-bold">4. Descripción / Nota</label>
+                                <textarea name="descripcion" id="descripcion" rows="3" class="form-control" placeholder="Ej: Compra según factura #1234" required></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer text-end">
+                        <a href="{% url 'lista_productos' %}" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary" id="btn-guardar"><i class="fas fa-save me-2"></i>Guardar Movimiento</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // --- LÓGICA PARA EL BUSCADOR DE PRODUCTOS ---
+    const $productoSearch = $('#producto-search');
+    if ($productoSearch.length > 0) {
+        $productoSearch.select2({
+            placeholder: "Escriba un código o nombre para buscar...",
+            language: "es",
+            ajax: {
+                url: "{% url 'buscar_productos_api' %}",
+                dataType: 'json',
+                delay: 250,
+                data: function (params) { return { term: params.term }; },
+                processResults: function (data) { return { results: data.results }; },
+                cache: true
+            }
+        });
+
+        $productoSearch.on('select2:select', function (e) {
+            const codigoSeleccionado = e.params.data.id;
+            $.ajax({
+                url: "{% url 'get_producto_detalle_api' %}",
+                data: { 'codigo': codigoSeleccionado },
+                success: function (data) {
+                    if (data.existe) {
+                        $('#nombre-producto').text(data.nombre);
+                        $('#existencia-actual').text(data.cantidad);
+                    }
+                }
+            });
+        });
+    }
+
+    // --- LÓGICA NUEVA PARA EL NÚMERO CORRELATIVO ---
+    const $tipoDocumento = $('#tipo_documento');
+
+    function actualizarNumeroReferencia() {
+        const tipoSeleccionado = $tipoDocumento.val();
+        if (!tipoSeleccionado) return;
+
+        // Llamamos a nuestra nueva API
+        $.ajax({
+            url: "{% url 'get_siguiente_numero_api' %}",
+            data: { 'tipo_documento': tipoSeleccionado },
+            success: function(data) {
+                if (data.siguiente_numero) {
+                    $('#numero_ref_display').val(data.siguiente_numero);
+                    $('#numero_ref_hidden').val(data.siguiente_numero);
+                    $('#btn-guardar').prop('disabled', false); // Habilitar botón si hay éxito
+                }
+            },
+            // 1. MEJORA EN EL MANEJO DE ERRORES
+            error: function(jqXHR, textStatus, errorThrown) {
+                 $('#numero_ref_display').val('No se pudo cargar');
+                 $('#btn-guardar').prop('disabled', true); // Deshabilitar botón si hay error
+                 // Para depuración: Muestra el error detallado en la consola del navegador (F12)
+                 console.error("Error al obtener N° de Referencia:", textStatus, errorThrown, jqXHR.responseText);
+            }
+        });
+    }
+
+    // Actualizar el número cuando cambia el tipo de documento
+    $tipoDocumento.on('change', actualizarNumeroReferencia);
+
+    // Actualizar el número al cargar la página por primera vez
+    actualizarNumeroReferencia();
+});
+</script>
+{% endblock %}

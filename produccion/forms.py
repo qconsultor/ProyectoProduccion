@@ -11,7 +11,8 @@ from .models import (
     NotaIngresoProductoTerminado,
     CorteDeBobina, 
     CorteDeBobinaDetalle,
-    Producto
+    Producto,
+    ControlProcesoDetalle # <-- ESTA ES LA LÍNEA QUE FALTABA
 )
 
 # --- FORMULARIOS PRINCIPALES ---
@@ -46,7 +47,13 @@ class ControlProcesoForm(forms.ModelForm):
     class Meta:
         model = ControlProceso
         fields = '__all__'
-        # ... (puedes añadir widgets si los necesitas)
+        # --- INICIO DE LA CORRECCIÓN ---
+        # Con esto, le decimos a Django cómo queremos que se llame
+        # la etiqueta de este campo en específico.
+        labels = {
+            'temporada_anio': 'Temporada/Año',
+        }
+        # --- FIN DE LA CORRECCIÓN ---
 
 class ReporteDiarioForm(forms.ModelForm):
     class Meta:
@@ -188,4 +195,24 @@ class ProductoForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Nombre descriptivo del producto'
             }),
+        }
+
+#11092025
+class ControlProcesoDetalleForm(forms.ModelForm):
+    class Meta:
+        model = ControlProcesoDetalle
+        # Definimos los campos que queremos en nuestro formulario de detalle
+        fields = ['fecha', 'turno', 'compaginado', 'doblado_libro', 'doblado_portada', 'engrapado', 'pegado', 'refilado', 'empacado', 'unidades']
+        # Añadimos widgets para que se vean como campos de formulario estándar de Bootstrap
+        widgets = {
+            'fecha': forms.DateInput(attrs={'class': 'form-control form-control-sm', 'type': 'date'}),
+            'turno': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'compaginado': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'doblado_libro': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'doblado_portada': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'engrapado': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'pegado': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'refilado': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'empacado': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'unidades': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
         }

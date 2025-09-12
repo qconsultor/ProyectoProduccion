@@ -215,6 +215,9 @@ class Kardex(models.Model):
     saldo = models.DecimalField(max_digits=10, decimal_places=2)
     idsucursal = models.IntegerField()
 
+    # --- AÑADE ESTA LÍNEA ---07092025
+    numero = models.IntegerField(blank=True, null=True, verbose_name="Número de Referencia", db_column='NUMERO')
+
     class Meta:
         managed = False
         db_table = 'kardex'

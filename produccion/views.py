@@ -1,3 +1,7 @@
+from xml.dom.minidom import Document
+from django.db import transaction
+from django.utils import timezone
+import decimal
 # Al principio de produccion/views.py
 from datetime import date
 from django.db.models import Q
@@ -6,14 +10,16 @@ from django.db.models import Max
 from django.shortcuts import render, redirect, get_object_or_404
 from django.forms import inlineformset_factory,modelformset_factory # <-- ¡AÑADE ESTA LÍNEA!
 from django.contrib import messages
+from django.http import JsonResponse
 # Al principio de produccion/views.py
 from .models import (
     OrdenProduccion, RequisicionEncabezado, ControlProceso, CorteDeBobina, CorteDeBobinaDetalle, 
     ReporteDiarioProductoTerminado, NotaIngresoProductoTerminado, 
-    Producto, Kardex
+    Producto, Kardex,
+    ControlProcesoDetalle # <-- AÑADE ESTA LÍNEA QUE FALTABA
 )
 #from .forms import OrdenProduccionForm, RequisicionForm
-from .forms import OrdenProduccionForm, RequisicionForm, ControlProcesoForm , ReporteDiarioForm , NotaIngresoForm, CorteDeBobinaForm, CorteDeBobinaDetalleForm, CorteDeBobinaDetalleFormEditar,ProductoForm
+from .forms import OrdenProduccionForm, RequisicionForm, ControlProcesoForm , ReporteDiarioForm , NotaIngresoForm, CorteDeBobinaForm, CorteDeBobinaDetalleForm, CorteDeBobinaDetalleFormEditar,ProductoForm,ControlProcesoDetalleForm
 
 #dashboard
 # En produccion/views.py
@@ -192,10 +198,64 @@ def lista_controles(request):
     contexto = {'controles': controles}
     return render(request, 'produccion/lista_controles.html', contexto)
 
+def editar_control(request, control_id):
+    control = get_object_or_404(ControlProceso, pk=control_id)
+
+    ControlProcesoDetalleFormSet = inlineformset_factory(
+        ControlProceso, 
+        ControlProcesoDetalle, 
+        form=ControlProcesoDetalleForm,
+        extra=1,
+        can_delete=True
+    )
+
+    if request.method == 'POST':
+        form = ControlProcesoForm(request.POST, instance=control)
+        formset = ControlProcesoDetalleFormSet(request.POST, instance=control)
+
+        if form.is_valid() and formset.is_valid():
+            form.save()
+            formset.save()
+            messages.success(request, '¡Control de proceso actualizado exitosamente!')
+            return redirect('detalle_control', control_id=control.id)
+    else:
+        form = ControlProcesoForm(instance=control)
+        formset = ControlProcesoDetalleFormSet(instance=control)
+
+    contexto = {
+        'form': form,
+        'formset': formset,
+        'control': control,
+    }
+    return render(request, 'produccion/crear_control.html', contexto)
+
+# --- INICIO DE LA CORRECCIÓN: AÑADIR LA FUNCIÓN QUE FALTABA ---
 def detalle_control(request, control_id):
     control = get_object_or_404(ControlProceso, pk=control_id)
-    contexto = {'control': control}
+    
+    # Buscamos todos los detalles que pertenecen a este control
+    detalles_del_proceso = control.detalles.all().order_by('fecha', 'turno')
+
+    contexto = {
+        'control': control,
+        'detalles': detalles_del_proceso # Pasamos los detalles a la plantilla
+    }
     return render(request, 'produccion/detalle_control.html', contexto)
+# --- FIN DE LA CORRECCIÓN ---
+
+# def detalle_control(request, control_id):
+#     control = get_object_or_404(ControlProceso, pk=control_id)
+#     #contexto = {'control': control}
+#     # --- INICIO DE LA CORRECCIÓN ---
+#     # ¡LA LÍNEA QUE FALTABA! 
+#     # Le decimos a Django que busque todos los detalles que pertenecen a este control.
+#     detalles_del_proceso = control.detalles.all().order_by('fecha', 'turno')
+#     # --- FIN DE LA CORRECCIÓN ---
+#     contexto = {
+#         'control': control,
+#         'detalles': detalles_del_proceso # <-- Pasamos los detalles encontrados a la plantilla
+#     }
+#     return render(request, 'produccion/detalle_control.html', contexto)
 
 def crear_control(request):
     if request.method == 'POST':
@@ -207,42 +267,10 @@ def crear_control(request):
         form = ControlProcesoForm()
     contexto = {'form': form}
     return render(request, 'produccion/crear_control.html', contexto)
+# --- REEMPLAZA ESTA FUNCIÓN ---
 
-def editar_control(request, control_id):
-    # Obtenemos el objeto principal (el encabezado)
-    control = get_object_or_404(ControlProceso, pk=control_id)
 
-    # Creamos una "fábrica" de formsets para los detalles.
-    # Le decimos que trabaje con el modelo padre e hijo, y que muestre un formulario extra.
-    ControlProcesoDetalleFormSet = inlineformset_factory(
-        ControlProceso, 
-        ControlProcesoDetalle, 
-        fields=('fecha', 'turno', 'compaginado', 'doblado_libro', 'doblado_portada', 'engrapado', 'pegado', 'refilado', 'empacado', 'unidades'),
-        extra=1, # Muestra un formulario en blanco para añadir un nuevo detalle
-        can_delete=True # Permite borrar detalles existentes
-    )
 
-    if request.method == 'POST':
-        # Si el usuario envía datos, llenamos el formulario principal Y el formset
-        form = ControlProcesoForm(request.POST, instance=control)
-        formset = ControlProcesoDetalleFormSet(request.POST, instance=control)
-
-        # Verificamos que AMBOS sean válidos
-        if form.is_valid() and formset.is_valid():
-            form.save()
-            formset.save()
-            return redirect('detalle_control', control_id=control.id) # Volvemos al detalle para ver los cambios
-    else:
-        # Si el usuario solo visita la página, mostramos el formulario y el formset llenos con los datos existentes
-        form = ControlProcesoForm(instance=control)
-        formset = ControlProcesoDetalleFormSet(instance=control)
-
-    contexto = {
-        'form': form,
-        'formset': formset, # Pasamos también el formset a la plantilla
-        'control': control,
-    }
-    return render(request, 'produccion/crear_control.html', contexto)
 
 def eliminar_control(request, control_id):
     control = get_object_or_404(ControlProceso, pk=control_id)
@@ -795,3 +823,324 @@ def buscar_productos_api(request):
         })
 
     return JsonResponse({'results': resultados})
+
+#07092025
+# --- AÑADE ESTA NUEVA API AL FINAL DEL ARCHIVO ---
+def get_producto_detalle_api(request):
+    """
+    API que devuelve los detalles (como la cantidad) de un producto específico.
+    """
+    codigo_producto = request.GET.get('codigo')
+    data = {'existe': False}
+    try:
+        # Usamos .get() que es estricto y asegura que solo haya un resultado
+        producto = Producto.objects.using('rq').get(codigo=codigo_producto)
+        data = {
+            'existe': True,
+            'cantidad': producto.cantidad,
+            'nombre': producto.nombre
+        }
+    except Producto.DoesNotExist:
+        # El producto no fue encontrado, data ya está como {'existe': False}
+        pass
+    
+    return JsonResponse(data)
+
+
+# 07092025--- AÑADE ESTA VISTA PRINCIPAL AL FINAL DEL ARCHIVO ---
+# Usamos transaction.atomic para asegurar que ambas operaciones (Producto y Kardex)
+# se completen exitosamente. Si una falla, la otra se revierte.
+# --- REEMPLAZA TU VISTA 'ingreso_producto' CON ESTA VERSIÓN MEJORADA ---
+@transaction.atomic(using='rq')
+def ingreso_producto(request):
+    if request.method == 'POST':
+        # --- LÓGICA PARA GUARDAR LOS DATOS ---
+        codigo = request.POST.get('producto_codigo')
+        cantidad_ingresada_str = request.POST.get('cantidad', '0')
+        descripcion = request.POST.get('descripcion')
+        fecha_ingreso_str = request.POST.get('fecha') # <-- 1. Obtenemos la fecha del formulario
+
+        if not all([codigo, cantidad_ingresada_str, descripcion, fecha_ingreso_str]):
+            messages.error(request, 'Todos los campos son obligatorios.')
+            return redirect('ingreso_producto')
+
+        try:
+            cantidad_ingresada = decimal.Decimal(cantidad_ingresada_str)
+            if cantidad_ingresada <= 0:
+                messages.error(request, 'La cantidad a ingresar debe ser un número positivo.')
+                return redirect('ingreso_producto')
+
+            producto = Producto.objects.using('rq').select_for_update().get(codigo=codigo)
+            nuevo_stock = producto.cantidad + cantidad_ingresada
+            producto.cantidad = nuevo_stock
+            producto.save()
+
+            Kardex.objects.using('rq').create(
+                producto=producto,
+                codigo=producto.codigo,
+                fecha=fecha_ingreso_str, # <-- 2. Usamos la fecha del formulario al guardar
+                documento='INGRESO MANUAL',
+                descripcion=descripcion,
+                entrada=cantidad_ingresada,
+                salida=0,
+                saldo=nuevo_stock,
+                idsucursal=10
+            )
+
+            messages.success(request, f'¡Ingreso de {cantidad_ingresada} para "{producto.nombre}" guardado exitosamente!')
+            return redirect('lista_productos')
+
+        except Producto.DoesNotExist:
+            messages.error(request, 'Error: El producto seleccionado ya no existe.')
+        except Exception as e:
+            messages.error(request, f'Ocurrió un error inesperado al guardar: {e}')
+
+        return redirect('ingreso_producto')
+
+    # --- LÓGICA PARA MOSTRAR LA PÁGINA VACÍA ---
+    contexto = {
+        'today_date': date.today().strftime('%Y-%m-%d') # <-- 3. Pasamos la fecha de hoy a la plantilla
+    }
+    return render(request, 'produccion/ingreso_producto.html', contexto)
+
+#07092025
+# --- AÑADE ESTA NUEVA FUNCIÓN API AL FINAL DEL ARCHIVO ---
+def get_siguiente_numero_api(request):
+    """
+    API que calcula el siguiente número correlativo para un tipo de documento específico.
+    """
+    tipo_documento = request.GET.get('tipo_documento')
+    if not tipo_documento:
+        return JsonResponse({'error': 'Tipo de documento no proporcionado'}, status=400)
+
+    try:
+        # Buscamos en el Kardex el número más alto para ese tipo de documento
+        ultimo_numero = Kardex.objects.using('rq').filter(
+            documento__startswith=f'{tipo_documento} N°'
+        ).aggregate(max_num=Max('numero'))['max_num'] or 0
+        siguiente_numero = ultimo_numero + 1
+        return JsonResponse({'siguiente_numero': siguiente_numero})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+# --- REEMPLAZA TU VISTA 'ingreso_producto' CON ESTA VERSIÓN ---
+@transaction.atomic(using='rq')
+def ingreso_producto(request):
+    if request.method == 'POST':
+        # --- LÓGICA PARA GUARDAR LOS DATOS ---
+        codigo = request.POST.get('producto_codigo')
+        cantidad_ingresada_str = request.POST.get('cantidad', '0')
+        descripcion = request.POST.get('descripcion')
+        fecha_ingreso_str = request.POST.get('fecha')
+        tipo_documento = request.POST.get('tipo_documento')
+        numero_referencia = request.POST.get('numero_referencia')
+
+        try:
+            cantidad_ingresada = decimal.Decimal(cantidad_ingresada_str)
+            if cantidad_ingresada <= 0:
+                raise ValueError("La cantidad debe ser mayor que cero.")
+
+            producto = Producto.objects.using('rq').select_for_update().get(codigo=codigo)
+            nuevo_stock = producto.cantidad + cantidad_ingresada
+            producto.cantidad = nuevo_stock
+            producto.save()
+
+            Kardex.objects.using('rq').create(
+                producto=producto,
+                codigo=producto.codigo,
+                fecha=fecha_ingreso_str,
+                documento=f'{tipo_documento} N° {numero_referencia}',
+                descripcion=descripcion,
+                entrada=cantidad_ingresada,
+                salida=0,
+                saldo=nuevo_stock,
+                idsucursal=10,
+                numero=numero_referencia
+            )
+
+            messages.success(request, f'¡{tipo_documento} N° {numero_referencia} guardado exitosamente!')
+            return redirect('lista_productos')
+
+        except Exception as e:
+            messages.error(request, f'Ocurrió un error inesperado al guardar: {e}')
+            return redirect('ingreso_producto')
+
+    # --- LÓGICA PARA MOSTRAR LA PÁGINA (GET) ---
+    contexto = {
+        'today_date': date.today().strftime('%Y-%m-%d'),
+    }
+    return render(request, 'produccion/ingreso_producto.html', contexto)
+
+# --- AÑADE ESTA NUEVA VISTA AL FINAL DEL ARCHIVO ---
+def reporte_movimientos(request):
+    # Obtenemos las fechas del formulario. Si no existen, usamos valores vacíos.
+    fecha_desde = request.GET.get('fecha_desde', '')
+    fecha_hasta = request.GET.get('fecha_hasta', '')
+
+    # Empezamos con una consulta vacía
+    movimientos = Kardex.objects.none()
+
+    # Solo ejecutamos la búsqueda si el usuario ha enviado al menos una fecha
+    if fecha_desde or fecha_hasta:
+        # Usamos select_related para traer también la información del producto
+        # y evitar consultas extra a la base de datos.
+        query = Kardex.objects.using('rq').select_related('producto')
+
+        if fecha_desde:
+            query = query.filter(fecha__date__gte=fecha_desde)
+        
+        if fecha_hasta:
+            query = query.filter(fecha__date__lte=fecha_hasta)
+        
+        # Ordenamos los resultados por fecha, del más reciente al más antiguo
+        movimientos = query.order_by('-fecha')
+
+    contexto = {
+        'movimientos': movimientos,
+        'fecha_desde_valor': fecha_desde,
+        'fecha_hasta_valor': fecha_hasta,
+    }
+    return render(request, 'produccion/reporte_movimientos.html', contexto)
+
+def lista_movimientos(request):
+    """
+    Muestra una lista de documentos de movimiento, permitiendo filtrar por tipo.
+    Ahora solo considera los tipos de movimiento manuales.
+    """
+    tipo_seleccionado = request.GET.get('tipo', '')
+
+    # 1. Definimos los tipos de documento que nos interesan para esta consulta.
+    tipos_manuales = ['INGRESO', 'AJUSTE', 'DEVOLUCION']
+
+    # 2. La consulta base ahora solo traerá movimientos de la sucursal 10.
+    movimientos_base = Kardex.objects.using('rq').filter(idsucursal=10)
+    
+    # --- INICIO DE LA CORRECCIÓN ---
+    # 3. Asignamos la lista de tipos manuales a la variable que usará el contexto.
+    tipos_documento_para_filtro = tipos_manuales
+    # --- FIN DE LA CORRECCIÓN ---
+
+    # Aplicamos el filtro si el usuario seleccionó un tipo de documento
+    if tipo_seleccionado:
+        movimientos_base = movimientos_base.filter(documento__startswith=f"{tipo_seleccionado} N°")
+
+    # Agrupamos para obtener la lista de documentos únicos para la tabla
+    movimientos_unicos_qs = movimientos_base.values(
+        'documento', 'numero', 'fecha'
+    ).distinct().order_by('-fecha', '-numero')
+
+    # Procesamos los datos para la plantilla
+    movimientos_procesados = []
+    for mov in movimientos_unicos_qs:
+        if not mov['documento'] or mov['numero'] is None:
+            continue
+        partes_documento = mov['documento'].split(' N° ')
+        if len(partes_documento) > 0:
+            tipo_doc = partes_documento[0]
+            try:
+                numero_limpio = int(mov['numero'])
+                movimientos_procesados.append({
+                    'tipo_documento': tipo_doc,
+                    'numero': numero_limpio,
+                    'fecha': mov['fecha']
+                })
+            except (ValueError, TypeError):
+                continue
+
+    contexto = {
+        'movimientos': movimientos_procesados,
+        'tipos_documento': tipos_documento_para_filtro, # Usamos la variable correcta
+        'tipo_seleccionado': tipo_seleccionado
+    }
+    return render(request, 'produccion/lista_movimientos.html', contexto)
+
+# def lista_movimientos(request):
+#     """
+#     Muestra una lista de todos los documentos de movimiento de inventario,
+#     agrupados por su tipo y número de referencia.
+#     """
+#     # --- INICIO DE LA CORRECCIÓN ---
+#     # Añadimos el filtro para mostrar únicamente los movimientos de la sucursal 10
+#     movimientos_unicos_qs = Kardex.objects.using('rq').filter(idsucursal=10 and Documento='INGRESO').values(
+#         'documento', 
+#         'numero',
+#         'fecha'
+#     ).distinct().order_by('-fecha', '-numero')
+#     # --- FIN DE LA CORRECCIÓN ---
+
+#     movimientos_procesados = []
+#     for mov in movimientos_unicos_qs:
+#         # Ignoramos registros que no tengan un documento o número válido
+#         if not mov['documento'] or mov['numero'] is None:
+#             continue
+
+#         partes_documento = mov['documento'].split(' N° ')
+#         if len(partes_documento) > 0:
+#             tipo_doc = partes_documento[0]
+
+#             # --- INICIO DE LA CORRECCIÓN ---
+#             # Nos aseguramos de que el número sea un entero limpio,
+#             # eliminando cualquier espacio y convirtiéndolo a número.
+#             try:
+#                 numero_limpio = int(mov['numero'])
+#             except (ValueError, TypeError):
+#                 # Si por alguna razón el número no es válido, ignoramos este registro para evitar que la página se caiga.
+#                 continue
+#             # --- FIN DE LA CORRECCIÓN ---
+
+#             movimientos_procesados.append({
+#                 'tipo_documento': tipo_doc,
+#                 'numero': numero_limpio, # <-- Usamos el número ya limpio
+#                 'fecha': mov['fecha']
+#             })
+
+#     contexto = {
+#         'movimientos': movimientos_procesados
+#     }
+#     return render(request, 'produccion/lista_movimientos.html', contexto)
+
+def detalle_movimiento(request, tipo_documento, numero):
+    """
+    Muestra el detalle de un movimiento de inventario específico.
+    """
+    # --- INICIO DE LA CORRECCIÓN ---
+    # La URL ahora usa un formato "slug" (ej: ajuste-de-inventario).
+    # Lo revertimos a su forma original reemplazando guiones por espacios.
+    tipo_documento_real = tipo_documento.replace('-', ' ')
+    # --- FIN DE LA CORRECCIÓN ---
+    
+    documento_completo = f"{tipo_documento_real} N° {numero}"
+
+    detalles_movimiento = Kardex.objects.using('rq').select_related('producto').filter(
+        documento=documento_completo
+    ).order_by('producto__nombre')
+
+    contexto = {
+        'encabezado': detalles_movimiento.first(), 
+        'detalles': detalles_movimiento
+    }
+    return render(request, 'produccion/detalle_movimiento.html', contexto)
+# def detalle_movimiento(request, tipo_documento, numero):
+#     """
+#     Muestra el detalle de un movimiento de inventario específico,
+#     listando todos los productos que se incluyeron en esa transacción.
+#     """
+#     # Reemplazamos los guiones bajos que pueda traer la URL por espacios
+#     tipo_documento_real = tipo_documento.replace('_', ' ')
+    
+#     # Construimos el nombre completo del documento para la búsqueda
+#     documento_completo = f"{tipo_documento_real} N° {numero}"
+
+#     # Buscamos todos los registros del kardex que pertenecen a este documento
+#     detalles_movimiento = Kardex.objects.using('rq').select_related('producto').filter(
+#         documento=documento_completo
+#     ).order_by('producto__nombre')
+
+#     contexto = {
+#         # Pasamos solo el primer resultado para los datos generales (fecha, etc.)
+#         'encabezado': detalles_movimiento.first(), 
+#         # Pasamos todos los resultados para la tabla de detalles
+#         'detalles': detalles_movimiento
+#     }
+#     return render(request, 'produccion/detalle_movimiento.html', contexto)

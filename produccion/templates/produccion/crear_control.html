@@ -1,38 +1,164 @@
 {% extends 'produccion/base.html' %}
-{% block title %}{% if form.instance.pk %}Editar{% else %}Añadir{% endif %} Control{% endblock %}
+
+{% block title %}Editar Control de Proceso{% endblock %}
+
 {% block content %}
-    <div class="card">
-        <div class="card-header">
-            <h3>{% if form.instance.pk %}Editar{% else %}Añadir{% endif %} Control de Proceso para: {{ control.nombre_del_libro }}</h3>
-        </div>
-        <div class="card-body">
-            <form method="POST">
-                {% csrf_token %}
-
-                <h4>Información General</h4>
-                {% for field in form %}
-                    <div class="mb-3">
-                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                        {{ field }}
-                    </div>
-                {% endfor %}
-
-                <hr class="my-4">
-
-                <h4>Detalles del Proceso</h4>
-
-                {{ formset.management_form }}
-
-                {% for detalle_form in formset %}
-                    <div class="row border-bottom py-3">
-                        {{ detalle_form.as_p }}
-                    </div>
-                {% endfor %}
-
-                <hr>
-                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+<div class="container-fluid">
+    <form method="post">
+        {% csrf_token %}
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 m-0">Editar Control de Proceso</h1>
+            <div>
                 <a href="{% url 'detalle_control' control.id %}" class="btn btn-secondary">Cancelar</a>
-            </form>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Guardar Cambios</button>
+            </div>
         </div>
-    </div>
+
+        <!-- Formulario principal (Encabezado) -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                 <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="{{ form.nombre_del_libro.id_for_label }}" class="form-label">{{ form.nombre_del_libro.label }}</label>
+                        {{ form.nombre_del_libro }}
+                    </div>
+                    <!-- ===== INICIO DE LA CORRECCIÓN ===== -->
+                    <div class="col-md-4">
+                        <label for="{{ form.temporada_anio.id_for_label }}" class="form-label">{{ form.temporada_anio.label }}</label>
+                        {{ form.temporada_anio }}
+                    </div>
+                    <!-- ===== FIN DE LA CORRECCIÓN ===== -->
+                    <div class="col-md-4">
+                        <label for="{{ form.orden_produccion.id_for_label }}" class="form-label">{{ form.orden_produccion.label }}</label>
+                        {{ form.orden_produccion }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de detalles (Formset) -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="m-0">Detalles del Proceso</h5>
+            </div>
+            
+            {% if formset.non_form_errors %}
+                <div class="alert alert-danger m-3">
+                    {{ formset.non_form_errors }}
+                </div>
+            {% endif %}
+
+            {{ formset.management_form }}
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Turno</th>
+                            <th>Compaginado</th>
+                            <th>Doblado Libro</th>
+                            <th>Doblado Portada</th>
+                            <th>Engrapado</th>
+                            <th>Pegado</th>
+                            <th>Refilado</th>
+                            <th>Empacado</th>
+                            <th>Unidades</th>
+                            <th>Eliminar</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detalle-formset">
+                        {% for form_item in formset %}
+                        {% if form_item.errors %}
+                        <tr class="table-danger">
+                            <td colspan="11">
+                                <p class="mb-0 fw-bold">Hay errores en esta fila:</p>
+                                <ul class="mb-0">
+                                {% for field, error_list in form_item.errors.items %}
+                                    <li>{{ field }}: {{ error_list|join:", " }}</li>
+                                {% endfor %}
+                                </ul>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        <tr class="detalle-form">
+                            {{ form_item.id }}
+                            {{ form_item.control_proceso }}
+                            <td>{{ form_item.fecha }}</td>
+                            <td>{{ form_item.turno }}</td>
+                            <td>{{ form_item.compaginado }}</td>
+                            <td>{{ form_item.doblado_libro }}</td>
+                            <td>{{ form_item.doblado_portada }}</td>
+                            <td>{{ form_item.engrapado }}</td>
+                            <td>{{ form_item.pegado }}</td>
+                            <td>{{ form_item.refilado }}</td>
+                            <td>{{ form_item.empacado }}</td>
+                            <td>{{ form_item.unidades }}</td>
+                            <td>
+                                {% if form_item.instance.pk %}
+                                <div class="form-check">
+                                    {{ form_item.DELETE }}
+                                    <label class="form-check-label" for="{{ form_item.DELETE.id_for_label }}">Marcar</label>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer text-end">
+                <button type="button" class="btn btn-success" id="add-form">
+                    <i class="fas fa-plus me-2"></i>Añadir Fila
+                </button>
+            </div>
+        </div>
+    </form>
+    
+    <!-- Plantilla para el nuevo formulario (oculta) -->
+    <table style="display:none;">
+        <tbody id="empty-form-template">
+            <tr class="detalle-form">
+                {{ formset.empty_form.id }}
+                {{ formset.empty_form.control_proceso }}
+                <td>{{ formset.empty_form.fecha }}</td>
+                <td>{{ formset.empty_form.turno }}</td>
+                <td>{{ formset.empty_form.compaginado }}</td>
+                <td>{{ formset.empty_form.doblado_libro }}</td>
+                <td>{{ formset.empty_form.doblado_portada }}</td>
+                <td>{{ formset.empty_form.engrapado }}</td>
+                <td>{{ formset.empty_form.pegado }}</td>
+                <td>{{ formset.empty_form.refilado }}</td>
+                <td>{{ formset.empty_form.empacado }}</td>
+                <td>{{ formset.empty_form.unidades }}</td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+
+</div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addFormBtn = document.getElementById('add-form');
+    const formsetContainer = document.getElementById('detalle-formset');
+    const emptyFormTemplate = document.getElementById('empty-form-template').innerHTML;
+    const totalFormsInput = document.getElementById('id_detalles-TOTAL_FORMS');
+
+    addFormBtn.addEventListener('click', function() {
+        let formNum = parseInt(totalFormsInput.value);
+        let newFormHtml = emptyFormTemplate.replace(/__prefix__/g, formNum);
+        
+        let tempDiv = document.createElement('div');
+        tempDiv.innerHTML = '<table>' + newFormHtml + '</table>';
+        let newFormRow = tempDiv.querySelector('tr');
+
+        formsetContainer.appendChild(newFormRow);
+        
+        totalFormsInput.value = formNum + 1;
+    });
+});
+</script>
+{% endblock %}
+
