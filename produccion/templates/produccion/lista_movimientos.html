@@ -15,12 +15,12 @@
             <!-- SECCIÓN DE FILTROS -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body d-flex flex-wrap gap-2">
-                    <a href="{% url 'lista_movimientos' %}" 
+                    <a href="{% url 'produccion:lista_movimientos' %}" 
                        class="btn {% if not tipo_seleccionado %}btn-primary{% else %}btn-outline-secondary{% endif %}">
                        Todos
                     </a>
                     {% for tipo in tipos_documento %}
-                    <a href="{% url 'lista_movimientos' %}?tipo={{ tipo }}" 
+                    <a href="{% url 'produccion:lista_movimientos' %}?tipo={{ tipo }}" 
                        class="btn {% if tipo == tipo_seleccionado %}btn-primary{% else %}btn-outline-secondary{% endif %}">
                        {{ tipo }}
                     </a>
@@ -44,7 +44,7 @@
                             <tr>
                                 <td>{{ movimiento.tipo_documento }}</td>
                                 <td>
-                                    <a href="{% url 'detalle_movimiento' movimiento.tipo_documento|slugify movimiento.numero %}">
+                                    <a href="{% url 'produccion:detalle_movimiento' movimiento.tipo_documento|slugify movimiento.numero %}">
                                         <strong>{{ movimiento.numero }}</strong>
                                     </a>
                                 </td>

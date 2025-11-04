@@ -78,7 +78,7 @@ def crear_orden(request):
         form = OrdenProduccionForm(request.POST)
         if form.is_valid():
             form.save() # Guarda el nuevo objeto en la base de datos
-            return redirect('lista_ordenes') # Redirige al usuario a la lista de órdenes
+            return redirect('produccion:lista_ordenes') # Redirige al usuario a la lista de órdenes
     else:
         # Si el método es GET, significa que el usuario acaba de entrar a la página
         # y le mostramos un formulario vacío.
@@ -99,7 +99,7 @@ def editar_orden(request, orden_id):
         form = OrdenProduccionForm(request.POST, instance=orden)
         if form.is_valid():
             form.save() # Como la instancia ya existe, .save() la actualiza
-            return redirect('lista_ordenes') # Volvemos a la lista
+            return redirect('produccion:lista_ordenes') # Volvemos a la lista
     else:
         # Si el usuario solo está visitando la página, le mostramos el formulario
         # pre-llenado con los datos de la instancia 'orden'
@@ -118,7 +118,7 @@ def eliminar_orden(request, orden_id):
     if request.method == 'POST':
         # Si el usuario confirma (hace clic en el botón del formulario)...
         orden.delete() # ...se elimina el objeto de la base de datos
-        return redirect('lista_ordenes') # Y volvemos a la lista
+        return redirect('produccion:lista_ordenes') # Y volvemos a la lista
 
     # Si es la primera vez que entra (GET), solo mostramos la página de confirmación
     contexto = {
@@ -153,7 +153,7 @@ def crear_requisicion(request):
         form = RequisicionForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('lista_requisiciones') # Redirigimos a la lista de requisiciones
+            return redirect('produccion:lista_requisiciones') # Redirigimos a la lista de requisiciones
     else:
         form = RequisicionForm()
 
@@ -169,7 +169,7 @@ def editar_requisicion(request, req_id):
         form = RequisicionForm(request.POST, instance=requisicion)
         if form.is_valid():
             form.save()
-            return redirect('lista_requisiciones')
+            return redirect('produccion:lista_requisiciones')
     else:
         form = RequisicionForm(instance=requisicion)
 
@@ -183,7 +183,7 @@ def eliminar_requisicion(request, req_id):
     requisicion = get_object_or_404(RequisicionEncabezado, pk=req_id)
     if request.method == 'POST':
         requisicion.delete()
-        return redirect('lista_requisiciones')
+        return redirect('produccion:lista_requisiciones')
 
     contexto = {
         'requisicion': requisicion
@@ -217,7 +217,7 @@ def editar_control(request, control_id):
             form.save()
             formset.save()
             messages.success(request, '¡Control de proceso actualizado exitosamente!')
-            return redirect('detalle_control', control_id=control.id)
+            return redirect('produccion:detalle_control', control_id=control.id)
     else:
         form = ControlProcesoForm(instance=control)
         formset = ControlProcesoDetalleFormSet(instance=control)
@@ -243,26 +243,13 @@ def detalle_control(request, control_id):
     return render(request, 'produccion/detalle_control.html', contexto)
 # --- FIN DE LA CORRECCIÓN ---
 
-# def detalle_control(request, control_id):
-#     control = get_object_or_404(ControlProceso, pk=control_id)
-#     #contexto = {'control': control}
-#     # --- INICIO DE LA CORRECCIÓN ---
-#     # ¡LA LÍNEA QUE FALTABA! 
-#     # Le decimos a Django que busque todos los detalles que pertenecen a este control.
-#     detalles_del_proceso = control.detalles.all().order_by('fecha', 'turno')
-#     # --- FIN DE LA CORRECCIÓN ---
-#     contexto = {
-#         'control': control,
-#         'detalles': detalles_del_proceso # <-- Pasamos los detalles encontrados a la plantilla
-#     }
-#     return render(request, 'produccion/detalle_control.html', contexto)
 
 def crear_control(request):
     if request.method == 'POST':
         form = ControlProcesoForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('lista_controles')
+            return redirect('produccion:lista_controles')
     else:
         form = ControlProcesoForm()
     contexto = {'form': form}
@@ -276,7 +263,7 @@ def eliminar_control(request, control_id):
     control = get_object_or_404(ControlProceso, pk=control_id)
     if request.method == 'POST':
         control.delete()
-        return redirect('lista_controles')
+        return redirect('produccion:lista_controles')
     contexto = {'control': control}
     return render(request, 'produccion/eliminar_control.html', contexto) 
 
@@ -296,7 +283,7 @@ def crear_reporte_diario(request):
         form = ReporteDiarioForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('lista_reportes_diarios')
+            return redirect('produccion:lista_reportes_diarios')
     else:
         form = ReporteDiarioForm()
     return render(request, 'produccion/crear_reporte_diario.html', {'form': form})
@@ -307,7 +294,7 @@ def editar_reporte_diario(request, reporte_id):
         form = ReporteDiarioForm(request.POST, instance=reporte)
         if form.is_valid():
             form.save()
-            return redirect('lista_reportes_diarios')
+            return redirect('produccion:lista_reportes_diarios')
     else:
         form = ReporteDiarioForm(instance=reporte)
     return render(request, 'produccion/crear_reporte_diario.html', {'form': form, 'reporte': reporte})
@@ -316,7 +303,7 @@ def eliminar_reporte_diario(request, reporte_id):
     reporte = get_object_or_404(ReporteDiarioProductoTerminado, pk=reporte_id)
     if request.method == 'POST':
         reporte.delete()
-        return redirect('lista_reportes_diarios')
+        return redirect('produccion:lista_reportes_diarios')
     return render(request, 'produccion/eliminar_reporte_diario.html', {'reporte': reporte})
 
 # --- AGREGA ESTE NUEVO BLOQUE DE VISTAS ---
@@ -334,7 +321,7 @@ def crear_nota_ingreso(request):
         form = NotaIngresoForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('lista_notas_ingreso')
+            return redirect('produccion:lista_notas_ingreso')
     else:
         form = NotaIngresoForm()
     return render(request, 'produccion/crear_nota_ingreso.html', {'form': form})
@@ -345,7 +332,7 @@ def editar_nota_ingreso(request, nota_id):
         form = NotaIngresoForm(request.POST, instance=nota)
         if form.is_valid():
             form.save()
-            return redirect('lista_notas_ingreso')
+            return redirect('produccion:lista_notas_ingreso')
     else:
         form = NotaIngresoForm(instance=nota)
     return render(request, 'produccion/crear_nota_ingreso.html', {'form': form, 'nota': nota})
@@ -354,85 +341,9 @@ def eliminar_nota_ingreso(request, nota_id):
     nota = get_object_or_404(NotaIngresoProductoTerminado, pk=nota_id)
     if request.method == 'POST':
         nota.delete()
-        return redirect('lista_notas_ingreso')
+        return redirect('produccion:lista_notas_ingreso')
     return render(request, 'produccion/eliminar_nota_ingreso.html', {'nota': nota})
 
-# En produccion/views.py
-
-    
-
-# def reporte_kardex(request):
-#     codigo_buscado = request.GET.get('codigo_producto', '')
-#     # --- NUEVO: Obtenemos las fechas del formulario ---
-#     fecha_desde = request.GET.get('fecha_desde', '')
-#     fecha_hasta = request.GET.get('fecha_hasta', '')
-
-#     movimientos = None
-
-#     if codigo_buscado:
-#         # Empezamos filtrando por el código del producto
-#         movimientos = Kardex.objects.using('rq').filter(codigo=codigo_buscado)
-
-#         # --- NUEVO: Si hay fechas, añadimos más filtros a la consulta ---
-#         if fecha_desde:
-#             # __date__gte = la FECHA del campo sea "mayor o igual que"
-#             movimientos = movimientos.filter(fecha__date__gte=fecha_desde)
-
-#         if fecha_hasta:
-#             # __date__lte = la FECHA del campo sea "menor o igual que"
-#             movimientos = movimientos.filter(fecha__date__lte=fecha_hasta)
-
-#         # Ordenamos el resultado final
-#         movimientos = movimientos.order_by('fecha')
-
-#     contexto = {
-#         'movimientos': movimientos,
-#         'codigo_buscado': codigo_buscado,
-#         # --- NUEVO: Devolvemos las fechas a la plantilla para que las "recuerde" ---
-#         'fecha_desde_valor': fecha_desde,
-#         'fecha_hasta_valor': fecha_hasta,
-#     }
-#     return render(request, 'produccion/reporte_kardex.html', contexto)
-#31082025
-# def reporte_kardex(request):
-#     codigo_buscado = request.GET.get('codigo_producto', '')
-#     fecha_desde = request.GET.get('fecha_desde', '')
-#     fecha_hasta = request.GET.get('fecha_hasta', '')
-
-#     movimientos = None
-
-#     if codigo_buscado:
-#         # --- LÍNEA CORREGIDA ---
-#         # Ahora filtramos por el 'codigo' del 'producto' relacionado.
-#         movimientos = Kardex.objects.using('rq').filter(producto__codigo=codigo_buscado)
-#         # -------------------------
-
-#         if fecha_desde:
-#             movimientos = movimientos.filter(fecha__date__gte=fecha_desde)
-
-#         if fecha_hasta:
-#             movimientos = movimientos.filter(fecha__date__lte=fecha_hasta)
-
-#         # --- AÑADE ESTA LÍNEA PARA DEPURAR ---
-#         print("SQL GENERADO:", movimientos.query)
-#         # ------------------------------------
-
-#         movimientos = movimientos.order_by('fecha')
-
-#     contexto = {
-#         'movimientos': movimientos,
-#         'codigo_buscado': codigo_buscado,
-#         'fecha_desde_valor': fecha_desde,
-#         'fecha_hasta_valor': fecha_hasta,
-#     }
-#     return render(request, 'produccion/reporte_kardex.html', contexto)
-#3108205 SEGUNDA DE ESTE DIA 
-
-# En produccion/views.py
-
-# En produccion/views.py
-
-# En produccion/views.py
 
 def reporte_kardex(request):
     codigo_buscado = request.GET.get('codigo_producto', '')
@@ -535,7 +446,7 @@ def crear_corte(request):
                     instance.save()
 
             messages.success(request, f'¡Reporte de Corte N° {corte_instance.numero_reporte} guardado exitosamente!')
-            return redirect('lista_cortes')
+            return redirect('produccion:lista_cortes')
     else:
         # --- LÓGICA PARA VALORES POR DEFECTO ---
         try:
@@ -566,7 +477,7 @@ def editar_corte(request, corte_id):
             form.save()
             detalle_formset.save()
             messages.success(request, f'¡Reporte de Corte N° {corte.numero_reporte} actualizado exitosamente!')
-            return redirect('lista_cortes')
+            return redirect('produccion:lista_cortes')
     else:
         form = CorteDeBobinaForm(instance=corte)
         detalle_formset = DetalleFormSet(queryset=CorteDeBobinaDetalle.objects.filter(corte_de_bobina=corte))
@@ -621,7 +532,7 @@ def editar_corte(request, corte_id):
             detalle_formset.save() # Para procesar los objetos marcados para eliminar
 
             messages.success(request, f'¡Reporte de Corte N° {corte.numero_reporte} actualizado exitosamente!')
-            return redirect('lista_cortes')
+            return redirect('produccion:lista_cortes')
     else:
         # Si el usuario solo está cargando la página, mostramos los datos existentes
         form = CorteDeBobinaForm(instance=corte)
@@ -640,7 +551,7 @@ def eliminar_corte(request, corte_id):
     corte = get_object_or_404(CorteDeBobina, pk=corte_id)
     if request.method == 'POST':
         corte.delete()
-        return redirect('lista_cortes')
+        return redirect('produccion:lista_cortes')
     return render(request, 'produccion/eliminar_corte.html', {'corte': corte})
 
 # En produccion/views.py
@@ -744,7 +655,7 @@ def crear_producto(request):
             
             # Ahora sí, guardamos el nuevo producto en la base de datos
             producto.save()
-            return redirect('lista_productos')
+            return redirect('produccion:lista_productos')
     else:
         form = ProductoForm()
     
@@ -763,7 +674,7 @@ def editar_producto(request, pk):
         form = ProductoForm(request.POST, instance=producto)
         if form.is_valid():
             form.save()
-            return redirect('lista_productos')
+            return redirect('produccion:lista_productos')
     else:
         # Pasamos la instancia del producto para pre-llenar el formulario
         form = ProductoForm(instance=producto)
@@ -862,13 +773,13 @@ def ingreso_producto(request):
 
         if not all([codigo, cantidad_ingresada_str, descripcion, fecha_ingreso_str]):
             messages.error(request, 'Todos los campos son obligatorios.')
-            return redirect('ingreso_producto')
+            return redirect('produccion:ingreso_producto')
 
         try:
             cantidad_ingresada = decimal.Decimal(cantidad_ingresada_str)
             if cantidad_ingresada <= 0:
                 messages.error(request, 'La cantidad a ingresar debe ser un número positivo.')
-                return redirect('ingreso_producto')
+                return redirect('produccion:ingreso_producto')
 
             producto = Producto.objects.using('rq').select_for_update().get(codigo=codigo)
             nuevo_stock = producto.cantidad + cantidad_ingresada
@@ -888,14 +799,14 @@ def ingreso_producto(request):
             )
 
             messages.success(request, f'¡Ingreso de {cantidad_ingresada} para "{producto.nombre}" guardado exitosamente!')
-            return redirect('lista_productos')
+            return redirect('produccion:lista_productos')
 
         except Producto.DoesNotExist:
             messages.error(request, 'Error: El producto seleccionado ya no existe.')
         except Exception as e:
             messages.error(request, f'Ocurrió un error inesperado al guardar: {e}')
 
-        return redirect('ingreso_producto')
+        return redirect('produccion:ingreso_producto')
 
     # --- LÓGICA PARA MOSTRAR LA PÁGINA VACÍA ---
     contexto = {
@@ -960,11 +871,11 @@ def ingreso_producto(request):
             )
 
             messages.success(request, f'¡{tipo_documento} N° {numero_referencia} guardado exitosamente!')
-            return redirect('lista_productos')
+            return redirect('produccion:lista_productos')
 
         except Exception as e:
             messages.error(request, f'Ocurrió un error inesperado al guardar: {e}')
-            return redirect('ingreso_producto')
+            return redirect('produccion:ingreso_producto')
 
     # --- LÓGICA PARA MOSTRAR LA PÁGINA (GET) ---
     contexto = {
@@ -1055,50 +966,6 @@ def lista_movimientos(request):
     }
     return render(request, 'produccion/lista_movimientos.html', contexto)
 
-# def lista_movimientos(request):
-#     """
-#     Muestra una lista de todos los documentos de movimiento de inventario,
-#     agrupados por su tipo y número de referencia.
-#     """
-#     # --- INICIO DE LA CORRECCIÓN ---
-#     # Añadimos el filtro para mostrar únicamente los movimientos de la sucursal 10
-#     movimientos_unicos_qs = Kardex.objects.using('rq').filter(idsucursal=10 and Documento='INGRESO').values(
-#         'documento', 
-#         'numero',
-#         'fecha'
-#     ).distinct().order_by('-fecha', '-numero')
-#     # --- FIN DE LA CORRECCIÓN ---
-
-#     movimientos_procesados = []
-#     for mov in movimientos_unicos_qs:
-#         # Ignoramos registros que no tengan un documento o número válido
-#         if not mov['documento'] or mov['numero'] is None:
-#             continue
-
-#         partes_documento = mov['documento'].split(' N° ')
-#         if len(partes_documento) > 0:
-#             tipo_doc = partes_documento[0]
-
-#             # --- INICIO DE LA CORRECCIÓN ---
-#             # Nos aseguramos de que el número sea un entero limpio,
-#             # eliminando cualquier espacio y convirtiéndolo a número.
-#             try:
-#                 numero_limpio = int(mov['numero'])
-#             except (ValueError, TypeError):
-#                 # Si por alguna razón el número no es válido, ignoramos este registro para evitar que la página se caiga.
-#                 continue
-#             # --- FIN DE LA CORRECCIÓN ---
-
-#             movimientos_procesados.append({
-#                 'tipo_documento': tipo_doc,
-#                 'numero': numero_limpio, # <-- Usamos el número ya limpio
-#                 'fecha': mov['fecha']
-#             })
-
-#     contexto = {
-#         'movimientos': movimientos_procesados
-#     }
-#     return render(request, 'produccion/lista_movimientos.html', contexto)
 
 def detalle_movimiento(request, tipo_documento, numero):
     """
@@ -1121,26 +988,131 @@ def detalle_movimiento(request, tipo_documento, numero):
         'detalles': detalles_movimiento
     }
     return render(request, 'produccion/detalle_movimiento.html', contexto)
-# def detalle_movimiento(request, tipo_documento, numero):
-#     """
-#     Muestra el detalle de un movimiento de inventario específico,
-#     listando todos los productos que se incluyeron en esa transacción.
-#     """
-#     # Reemplazamos los guiones bajos que pueda traer la URL por espacios
-#     tipo_documento_real = tipo_documento.replace('_', ' ')
+
+# ==============================================================================
+# VISTAS PARA CLIENTES (Desde la BD 'RQ')
+# ==============================================================================
+
+def lista_clientes(request):
+    # .using('rq') le dice a Django que consulte la base de datos comercial
+    clientes = Cliente.objects.using('rq').all()
+    return render(request, 'produccion/consignacion/lista_clientes.html', {'clientes': clientes})
+
+def crear_cliente(request):
+    # La escritura en la BD 'rq' está deshabilitada por seguridad en el router.
+    # Esta es una vista de ejemplo si se necesitara habilitar.
+    messages.info(request, "La creación de clientes se debe realizar desde el sistema principal.")
+    return redirect('produccion:lista_clientes')
+
+def editar_cliente(request, pk):
+    messages.info(request, "La edición de clientes se debe realizar desde el sistema principal.")
+    return redirect('produccion:lista_clientes')
+
+def eliminar_cliente(request, pk):
+    messages.error(request, "La eliminación de clientes no está permitida desde este sistema.")
+    return redirect('produccion:lista_clientes')
+
+# ==============================================================================
+# VISTAS PARA CONSIGNACIONES
+# ==============================================================================
+
+def lista_consignaciones(request):
+    consignaciones = Consignacion.objects.select_related('cliente').all().order_by('-fecha', '-id')
+    return render(request, 'produccion/consignacion/lista_consignaciones.html', {'consignaciones': consignaciones})
+
+def crear_consignacion(request):
+    if request.method == 'POST':
+        form = ConsignacionForm(request.POST)
+        formset = DetalleConsignacionFormSet(request.POST, prefix='detalles')
+        
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                consignacion = form.save()
+                formset.instance = consignacion
+                formset.save()
+            messages.success(request, f"Consignación #{consignacion.id} creada exitosamente.")
+            return redirect('produccion:lista_consignaciones')
+    else:
+        form = ConsignacionForm()
+        formset = DetalleConsignacionFormSet(prefix='detalles', queryset=ConsignacionDetalle.objects.none())
+
+    context = {
+        'form': form,
+        'formset': formset,
+        'titulo': 'Nueva Consignación'
+    }
+    return render(request, 'produccion/consignacion/consignacion_form.html', context)
+
+def editar_consignacion(request, pk):
+    consignacion = get_object_or_404(Consignacion, pk=pk)
+    if request.method == 'POST':
+        form = ConsignacionForm(request.POST, instance=consignacion)
+        formset = DetalleConsignacionFormSet(request.POST, instance=consignacion, prefix='detalles')
+
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                form.save()
+                formset.save()
+            messages.success(request, f"Consignación #{consignacion.id} actualizada exitosamente.")
+            return redirect('produccion:lista_consignaciones')
+    else:
+        form = ConsignacionForm(instance=consignacion)
+        formset = DetalleConsignacionFormSet(instance=consignacion, prefix='detalles')
     
-#     # Construimos el nombre completo del documento para la búsqueda
-#     documento_completo = f"{tipo_documento_real} N° {numero}"
+    context = {
+        'form': form,
+        'formset': formset,
+        'titulo': f'Editar Consignación #{consignacion.id}'
+    }
+    return render(request, 'produccion/consignacion/consignacion_form.html', context)
 
-#     # Buscamos todos los registros del kardex que pertenecen a este documento
-#     detalles_movimiento = Kardex.objects.using('rq').select_related('producto').filter(
-#         documento=documento_completo
-#     ).order_by('producto__nombre')
 
-#     contexto = {
-#         # Pasamos solo el primer resultado para los datos generales (fecha, etc.)
-#         'encabezado': detalles_movimiento.first(), 
-#         # Pasamos todos los resultados para la tabla de detalles
-#         'detalles': detalles_movimiento
-#     }
-#     return render(request, 'produccion/detalle_movimiento.html', contexto)
+def detalle_consignacion(request, pk):
+    consignacion = get_object_or_404(Consignacion.objects.prefetch_related('detalles', 'detalles__producto'), pk=pk)
+    return render(request, 'produccion/consignacion/detalle_consignacion.html', {'consignacion': consignacion})
+
+def eliminar_consignacion(request, pk):
+    consignacion = get_object_or_404(Consignacion, pk=pk)
+    if request.method == 'POST':
+        consignacion.delete()
+        messages.success(request, f"Consignación #{consignacion.id} eliminada.")
+        return redirect('produccion:lista_consignaciones')
+    return render(request, 'produccion/consignacion/eliminar_consignacion.html', {'consignacion': consignacion})
+
+
+def registrar_devolucion(request, consignacion_id):
+    # Lógica para devoluciones (a implementar)
+    messages.info(request, "Funcionalidad de devoluciones en construcción.")
+    return redirect('produccion:detalle_consignacion', pk=consignacion_id)
+
+# ==============================================================================
+# APIs para los buscadores
+# ==============================================================================
+
+def buscar_clientes_api(request):
+    query = request.GET.get('term', '')
+    if len(query) < 2:
+        return JsonResponse({'results': []})
+    
+    # Usamos .using('rq') para especificar la base de datos
+    clientes = Cliente.objects.using('rq').filter(
+        Q(nombre__icontains=query) | Q(codigo__icontains=query)
+    )[:20]
+    
+    results = [{'id': c.codigo, 'text': f"{c.nombre} ({c.codigo})"} for c in clientes]
+    return JsonResponse({'results': results})
+
+
+def buscar_productos_consignacion_api(request):
+    query = request.GET.get('term', '')
+    if len(query) < 2:
+        return JsonResponse({'results': []})
+
+    # Usamos el manager por defecto que ya filtra por sucursal 10
+    productos = Producto.objects.filter(
+        (Q(nombre__icontains=query) | Q(codigo__icontains=query)) &
+        ~Q(nombre3__in=['BOBINA', 'QUIMICO', 'PAPEL'])
+    )[:20]
+    
+    results = [{'id': p.pk, 'text': f"{p.nombre} ({p.codigo})"} for p in productos]
+    return JsonResponse({'results': results})

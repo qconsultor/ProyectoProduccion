@@ -1,0 +1,12 @@
+{% extends 'base.html' %} {% título del bloque %}{{ título }}{% endblock %} {% contenido del bloque %} <div
+    class="card">
+    <div class="card-header">
+        <h5 class="mb-0">{{ título }}</h5>
+    </div>
+    <div class="card-body">
+        <form method="post"> {% csrf_token %} {{ form.as_p }} <div class="mt-3"> <button type="submit"
+                    class="btn btn-success"><i class="bi bi-check2-circle"></i> Guardar</button> <a
+                    href="{% url 'lista_clientes' %}" class="btn btn-secundary">Cancelar</a> </div>
+        </form>
+    </div>
+</div> {% endblock %}

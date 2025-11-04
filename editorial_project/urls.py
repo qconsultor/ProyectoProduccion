@@ -21,7 +21,10 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # Esta línea le dice a Django que todas las URLs que empiecen con 'produccion/'
-    # deben buscarse en el archivo 'produccion/urls.py'
-    path('produccion/', include('produccion.urls')),
+    # --- LÍNEA CORREGIDA Y FINAL ---
+    # Aquí le decimos a Django:
+    # 1. Incluye todas las URLs del archivo 'produccion.urls'.
+    # 2. Y muy importante: agrúpalas todas bajo el "apellido" o namespace 'produccion'.
+    path('produccion/', include('produccion.urls', namespace='produccion')),
+    path('consignaciones/', include('produccion.urls_consignacion')),
 ]

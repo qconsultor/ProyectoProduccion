@@ -5,14 +5,14 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3">Gestión de Productos (Sucursal 10)</h1>
-        <a href="{% url 'crear_producto' %}" class="btn btn-primary">
+        <a href="{% url 'produccion:crear_producto' %}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>Crear Nuevo Producto
         </a>
     </div>
 
     <div class="card shadow-sm mb-4">
         <div class="card-body">
-            <form method="GET" action="{% url 'lista_productos' %}" class="row g-3 align-items-end">
+            <form method="GET" action="{% url 'produccion:lista_productos' %}" class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label for="filtro_tipo" class="form-label">Filtrar por Tipo de Producto</label>
                     <select name="filtro_tipo" id="filtro_tipo" class="form-select">
@@ -66,7 +66,7 @@
                             </td>
                             <td>{{ producto.cantidad }}</td>
                             <td>
-                                <a href="{% url 'editar_producto' producto.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
+                                <a href="{% url 'produccion:editar_producto' producto.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 a>
                             </td>

@@ -6,12 +6,16 @@
 <div class="container-fluid">
     <form method="post">
         {% csrf_token %}
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 m-0">Editar Control de Proceso</h1>
-            <div>
-                <a href="{% url 'detalle_control' control.id %}" class="btn btn-secondary">Cancelar</a>
-                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Guardar Cambios</button>
-            </div>
+        <div class="card-footer text-end">
+            <!-- CORREGIDO: El enlace para cancelar ahora usa el namespace -->
+            <a href="{% url 'produccion:lista_controles' %}" class="btn btn-secondary">Cancelar</a>
+            
+            <!-- LÓGICA CONDICIONAL: Este botón solo aparece si estamos editando (si el objeto ya tiene un ID) -->
+            {% if form.instance.pk %}
+                <a href="{% url 'produccion:detalle_control' control_id=form.instance.id %}" class="btn btn-info">Ver Detalle</a>
+            {% endif %}
+
+            <button type="submit" class="btn btn-primary">Guardar Control</button>
         </div>
 
         <!-- Formulario principal (Encabezado) -->

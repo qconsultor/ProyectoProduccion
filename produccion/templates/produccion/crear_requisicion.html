@@ -17,9 +17,9 @@
                 <hr>
                 <button type="submit" class="btn btn-primary">Guardar</button>
                 {% if form.instance.pk %}
-                <a href="{% url 'eliminar_requisicion' form.instance.pk %}" class="btn btn-danger">Eliminar</a>
+                <a href="{% url 'produccion:eliminar_requisicion' form.instance.pk %}" class="btn btn-danger">Eliminar</a>
                 {% endif %}
-                <a href="{% url 'lista_requisiciones' %}" class="btn btn-secondary">Cancelar</a>
+                <a href="{% url 'produccion:lista_requisiciones' %}" class="btn btn-secondary">Cancelar</a>
             </form>
         </div>
     </div>

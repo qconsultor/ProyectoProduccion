@@ -5,7 +5,7 @@
 {% block content %}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>Reportes de Corte de Bobina</h1>
-        <a href="{% url 'crear_corte' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Añadir Nuevo Reporte</a>
+        <a href="{% url 'produccion:crear_corte' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Añadir Nuevo Corte</a>
     </div>
     <div class="card">
         <div class="card-body">
@@ -21,7 +21,7 @@
                     {% for corte in cortes %}
                     <tr>
                         <!-- <td><a href="#"><strong>{{ corte.numero_reporte }}</strong></a></td> -->
-                         <td><a href="{% url 'detalle_corte' corte.id %}"><strong>{{ corte.numero_reporte }}</strong></a></td>
+                         <td><a href="{% url 'produccion:detalle_corte' corte.id %}"><strong>{{ corte.numero_reporte }}</strong></a></td>
                         <td>{{ corte.fecha }}</td>
                         <td>{{ corte.nombre_operario }}</td>
                     </tr>

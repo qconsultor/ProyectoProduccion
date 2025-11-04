@@ -3,7 +3,7 @@
 {% block content %}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>Reportes Diarios de Producto Terminado</h1>
-        <a href="{% url 'crear_reporte_diario' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Añadir Nuevo Reporte</a>
+        <a href="{% url 'produccion:crear_reporte_diario' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Añadir Nuevo Reporte</a>
     </div>
     <div class="card">
         <div class="card-body">
@@ -18,7 +18,7 @@
                 <tbody>
                     {% for reporte in reportes %}
                     <tr>
-                        <td><a href="{% url 'detalle_reporte_diario' reporte.id %}"><strong>{{ reporte.fecha }}</strong></a></td>
+                        <td><a href="{% url 'produccion:detalle_reporte_diario' reporte.id %}"><strong>{{ reporte.fecha }}</strong></a></td>
                         <td>{{ reporte.turno }}</td>
                         <td>{{ reporte.nombre_encargado }}</td>
                     </tr>

@@ -97,8 +97,8 @@ function inicializarBuscador(selector, url_api, placeholder_text) {
 }
 
 $(document).ready(function() {
-    inicializarBuscador('.bobina-search', "{% url 'buscar_bobinas_api' %}", "Busca una bobina...");
-    inicializarBuscador('.papel-search', "{% url 'buscar_papel_api' %}", "Busca un tipo de papel...");
+    inicializarBuscador('.bobina-search', "{% url 'produccion:buscar_bobinas_api' %}", "Busca una bobina...");
+    inicializarBuscador('.papel-search', "{% url 'produccion:buscar_papel_api' %}", "Busca un tipo de papel...");
 });
 </script>
 {% endblock %}

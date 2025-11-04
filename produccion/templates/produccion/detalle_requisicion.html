@@ -5,7 +5,7 @@
 {% block content %}
     <h1>
         Detalle de la Requisición: {{ requisicion.numero_requisicion|default:"Sin Número" }}
-        <a href="{% url 'editar_requisicion' requisicion.id %}" style="font-size: 0.6em; font-weight: normal;">(Editar)</a>
+        <a href="{% url 'produccion:editar_requisicion' requisicion.id %}" style="font-size: 0.6em; font-weight: normal;">(Editar)</a>
     </h1>
     
     <div class="detalle-grid" style="display: grid; grid-template-columns: 180px 1fr; gap: 5px 15px;">

@@ -11,14 +11,14 @@
         <h1 class="h3 m-0">Reporte de Kardex por Producto</h1>
 
         {% if codigo_buscado and movimientos %}
-            <a href="{% url 'reporte_kardex_imprimir' %}?{{ request.GET.urlencode }}" class="btn btn-secondary">
+            <a href="{% url 'produccion:reporte_kardex_imprimir' %}?{{ request.GET.urlencode }}" class="btn btn-secondary">
                 <i class="fas fa-file-pdf me-2"></i>Generar Reporte PDF
             </a>
         {% endif %}
     </div>
     <div class="card shadow-sm mb-4">
         <div class="card-body">
-            <form method="GET" action="{% url 'reporte_kardex' %}" class="row g-3 align-items-end">
+            <form method="GET" action="{% url 'produccion:reporte_kardex' %}" class="row g-3 align-items-end">
 
                 <div class="col-md-5">
                     <label for="producto-search" class="form-label">Código del Producto:</label>
@@ -95,7 +95,7 @@ $(document).ready(function() {
         placeholder: "Escriba un código o nombre para buscar...",
         language: "es", // Si quieres traducción
         ajax: {
-            url: "{% url 'buscar_productos_api' %}", // Llama a la API que creamos
+            url: "{% url 'produccion:buscar_productos_api' %}", // Llama a la API que creamos
             dataType: 'json',
             delay: 250, // Espera 250ms después de teclear para buscar
             data: function (params) {

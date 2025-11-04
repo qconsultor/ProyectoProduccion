@@ -3,7 +3,7 @@
 {% block content %}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>Notas de Ingreso de Producto Terminado</h1>
-        <a href="{% url 'crear_nota_ingreso' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Añadir Nueva Nota</a>
+        <a href="{% url 'produccion:crear_nota_ingreso' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Añadir Nueva Nota</a>
     </div>
     <div class="card">
         <div class="card-body">
@@ -18,7 +18,7 @@
                 <tbody>
                     {% for nota in notas %}
                     <tr>
-                        <td><a href="{% url 'detalle_nota_ingreso' nota.id %}"><strong>{{ nota.numero_nota }}</strong></a></td>
+                        <td><a href="{% url 'produccion:detalle_nota_ingreso' nota.id %}"><strong>{{ nota.numero_nota }}</strong></a></td>
                         <td>{{ nota.fecha }}</td>
                         <td>{{ nota.elaborado_por }}</td>
                     </tr>

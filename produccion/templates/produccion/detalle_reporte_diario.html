@@ -4,8 +4,8 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>Reporte del {{ reporte.fecha }} (Turno {{ reporte.turno }})</h1>
         <div>
-            <a href="{% url 'editar_reporte_diario' reporte.id %}" class="btn btn-secondary btn-sm">Editar</a>
-            <a href="{% url 'lista_reportes_diarios' %}" class="btn btn-outline-secondary btn-sm">&laquo; Volver a la lista</a>
+            <a href="{% url 'produccion:editar_reporte_diario' reporte.id %}" class="btn btn-secondary btn-sm">Editar</a>
+            <a href="{% url 'produccion:lista_reportes_diarios' %}" class="btn btn-outline-secondary btn-sm">&laquo; Volver a la lista</a>
         </div>
     </div>
     <div class="card">

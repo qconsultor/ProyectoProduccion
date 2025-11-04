@@ -1,0 +1,257 @@
+{% extends 'produccion/base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<form method="post" id="consignacion-form">
+    {% csrf_token %}
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h3 class="mb-0">{{ titulo }}</h3>
+        </div>
+        <div class="card-body">
+            <h4>Datos Generales</h4>
+            <div class="row align-items-center">
+                <div class="col-md-6 mb-3">
+                    <label for="id_cliente_search_select2" class="form-label">Cliente</label>
+                    <!-- Campo visible que se convierte en buscador -->
+                    <select id="id_cliente_search_select2" class="form-control" style="width: 100%;"></select>
+                    <!-- Campo invisible que guarda el ID del cliente para Django -->
+                    {{ form.cliente }}
+                    <span class="text-danger small">{{ form.cliente.errors }}</span>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="id_fecha" class="form-label">{{ form.fecha.label }}</label>
+                    {{ form.fecha }}
+                    <span class="text-danger small">{{ form.fecha.errors }}</span>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="id_referencia" class="form-label">{{ form.referencia.label }}</label>
+                    <!-- El campo de referencia ahora es de solo lectura -->
+                    {{ form.referencia }}
+                    <span class="text-danger small">{{ form.referencia.errors }}</span>
+                </div>
+            </div>
+            <hr>
+            <h4>Detalle de Productos</h4>
+
+            {% if formset.non_form_errors %}
+                <div class="alert alert-danger">
+                    {{ formset.non_form_errors }}
+                </div>
+            {% endif %}
+            
+            {{ formset.management_form }}
+            <input type="hidden" name="prefix" value="detalles">
+            <div id="formset-container">
+                {% for form in formset %}
+                {{ form.id }}  <!-- 🔹 Esto es CLAVE -->
+                <div class="row gx-2 align-items-center formset-row mb-2" id="form-{{ forloop.counter0 }}">
+                    <div class="col-md-5">
+                        <label for="id_detalles-{{ forloop.counter0 }}-producto">Producto</label>
+                        <select id="id_detalles-{{ forloop.counter0 }}-producto" name="detalles-{{ forloop.counter0 }}-producto"
+                                class="form-control producto" style="width: 100%;">
+                            {% if form.instance.producto %}
+                                <option value="{{ form.instance.producto.pk }}" selected>
+                                    {{ form.instance.producto.nombre }} ({{ form.instance.producto.codigo }})
+                                </option>
+                            {% else %}
+                                <option value="">---------</option>
+                            {% endif %}
+                        </select>
+                        <span class="text-danger small">{{ form.producto.errors }}</span>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="id_detalles-{{ forloop.counter0 }}-cantidad">Cantidad</label>
+                        {{ form.cantidad }}
+                        <span class="text-danger small">{{ form.cantidad.errors }}</span>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="id_detalles-{{ forloop.counter0 }}-precio">Precio</label>
+                        {{ form.precio }}
+                        <span class="text-danger small">{{ form.precio.errors }}</span>
+                        <small class="text-muted existencia-stock"></small>
+                    </div>
+                    <div class="col-md-2">
+                        <label>Total</label>
+                        <input type="text" class="form-control bg-light total-linea" readonly>
+                    </div>
+                    <div class="col-md-1 text-center">
+                        {% if formset.can_delete %}
+                        <label class="form-check-label">Eliminar</label>
+                        <div class="form-check">{{ form.DELETE }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" id="add-form" class="btn btn-outline-success btn-sm mt-2"><i class="fas fa-plus"></i> Añadir Producto</button>
+        </div>
+        <div class="card-footer text-end">
+            <h4 class="me-3 d-inline">Total Consignación: <span id="total-consignacion" class="fw-bold">$0.00</span></h4>
+            <a href="{% url 'consignacion:lista_consignaciones' %}" class="btn btn-secondary">Cancelar</a>
+            {% if form.instance.pk %}
+                <button type="submit" class="btn btn-warning">Actualizar Consignación</button>
+            {% else %}
+                <button type="submit" class="btn btn-primary">Guardar Consignación</button>
+            {% endif %}
+        </div>
+    </div>
+</form>
+
+<!-- Plantilla invisible para nuevas filas de productos -->
+<div id="empty-form" style="display: none;">
+    <div class="row gx-2 align-items-center formset-row mb-2" id="form-__prefix__">
+        <div class="col-md-5">
+            <label for="id_detalles-__prefix__-producto_search">Producto</label>
+            <select id="id_detalles-__prefix__-producto_search" class="form-control producto-search" style="width: 100%;"></select>
+            {{ formset.empty_form.producto }}
+        </div>
+        <div class="col-md-2">
+            <label for="id_detalles-__prefix__-cantidad">Cantidad</label>
+            {{ formset.empty_form.cantidad }}
+        </div>
+        <div class="col-md-2">
+            <label for="id_detalles-__prefix__-precio">Precio</label>
+            {{ formset.empty_form.precio }}
+            <small class="text-muted existencia-stock"></small>
+        </div>
+        <div class="col-md-2">
+            <label>Total</label>
+            <input type="text" class="form-control bg-light total-linea" readonly>
+        </div>
+        <div class="col-md-1 text-center">
+            {% if formset.can_delete %}
+            <label class="form-check-label">Eliminar</label>
+            <div class="form-check">{{ formset.empty_form.DELETE }}</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+
+    // ========================
+    // 🧩 1. CLIENTE CON SELECT2
+    // ========================
+    const clienteSelect = $('#id_cliente_search_select2');
+    clienteSelect.select2({
+        ajax: {
+            url: "{% url 'consignacion:buscar_clientes_api' %}",
+            dataType: 'json',
+            delay: 250,
+            data: params => ({ term: params.term }),
+            processResults: data => ({ results: data.results })
+        },
+        placeholder: 'Buscar cliente...',
+        minimumInputLength: 2
+    }).on('select2:select', function (e) {
+        $('input[name="cliente"]').val(e.params.data.id).trigger('change');
+    });
+
+    {% if cliente_obj %}
+        const clienteInicial = new Option(
+            "{{ cliente_obj.nombre|escapejs }} ({{ cliente_obj.codigo|escapejs }})",
+            "{{ cliente_obj.codigo|escapejs }}",
+            true,
+            true
+        );
+        clienteSelect.append(clienteInicial).trigger('change');
+        $('input[name="cliente"]').val("{{ cliente_obj.codigo|escapejs }}");
+    {% endif %}
+
+
+    // ========================
+    // 🧩 2. FUNCIÓN DE TOTALES
+    // ========================
+    function updateTotal() {
+        let totalConsignacion = 0;
+        $('.formset-row').each(function() {
+            const cantidad = parseFloat($(this).find('.cantidad').val()) || 0;
+            const precio = parseFloat($(this).find('.precio').val()) || 0;
+            const totalLinea = cantidad * precio;
+            $(this).find('.total-linea').val(totalLinea.toFixed(2));
+            totalConsignacion += totalLinea;
+        });
+        $('#total-consignacion').text('$' + totalConsignacion.toFixed(2));
+    }
+
+
+    // ========================
+    // 🧩 3. SELECT2 PRODUCTOS
+    // ========================
+    function initSelect2Producto(selector) {
+        $(selector).select2({
+            ajax: {
+                url: "{% url 'consignacion:buscar_productos_consignacion_api' %}",
+                dataType: 'json',
+                delay: 250,
+                data: params => ({ term: params.term }),
+                processResults: data => ({ results: data.results })
+            },
+            placeholder: 'Buscar producto...',
+            minimumInputLength: 2,
+        }).on('select2:select', function(e) {
+            const productoId = e.params.data.id;
+            const row = $(this).closest('.formset-row');
+            $.ajax({
+                url: `{% url 'consignacion:get_producto_detalle_consignacion_api' %}?id=${productoId}`,
+                success: function(data) {
+                    row.find('.precio').val(data.precio).trigger('change');
+                    row.find('.existencia-stock').text(`Exist.: ${data.existencia}`);
+                }
+            });
+        });
+    }
+
+    $('.producto').each((_, el) => initSelect2Producto(el));
+
+
+    // ========================
+    // 🧩 4. BOTÓN AÑADIR PRODUCTO
+    // ========================
+    $('#add-form').click(function(e) {
+        e.preventDefault();
+        const totalForms = $('#id_detalles-TOTAL_FORMS');
+        const formIndex = parseInt(totalForms.val());
+        const newForm = $('#empty-form').html().replace(/__prefix__/g, formIndex);
+        $('#formset-container').append(newForm);
+        totalForms.val(formIndex + 1);
+        initSelect2Producto(`#id_detalles-${formIndex}-producto`);
+    });
+
+
+    // ========================
+    // 🧩 5. MOSTRAR PRODUCTOS EXISTENTES (después de inicializar todo)
+    // ========================
+    setTimeout(() => {
+        {% for form in formset %}
+            {% if form.instance.pk and form.instance.producto %}
+                const productoSelect{{ forloop.counter0 }} = $('#id_detalles-{{ forloop.counter0 }}-producto');
+                const option{{ forloop.counter0 }} = new Option(
+                    "{{ form.instance.producto.nombre|escapejs }} ({{ form.instance.producto.codigo|escapejs }})",
+                    "{{ form.instance.producto.pk|escapejs }}",
+                    true,
+                    true
+                );
+                productoSelect{{ forloop.counter0 }}.append(option{{ forloop.counter0 }}).trigger('change');
+            {% endif %}
+        {% endfor %}
+        updateTotal();
+    }, 500); // Espera 0.5 seg para asegurar que select2 ya está listo
+
+
+    // ========================
+    // 🧩 6. EVENTOS EN CAMPOS NUMÉRICOS
+    // ========================
+    $('#consignacion-form').on('input change', '.cantidad, .precio', updateTotal);
+
+    updateTotal();
+});
+</script>
+{% endblock %}
+

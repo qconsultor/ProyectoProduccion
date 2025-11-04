@@ -28,7 +28,7 @@ DEBUG = True
 #ALLOWED_HOSTS = ['134.122.31.117']
 #ALLOWED_HOSTS = ['134.122.31.117', 'editorialproduccion.rqconsultores.net']
 # Así es como debe quedar:
-ALLOWED_HOSTS = ['134.122.31.117', 'editorialproduccion.rqconsultores.net', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['192.168.1.8','134.122.31.117', 'editorialproduccion.rqconsultores.net', '127.0.0.1', 'localhost']
 
 # Application definition
 
@@ -105,20 +105,7 @@ DATABASES = {
         },
     }
 }
-#DATABASES = {
-#    'default': {
-#        'ENGINE': 'mssql',
-#        'NAME': 'Personal', # <-- CAMBIA ESTO
-#        'USER': 'sia',   # <-- CAMBIA ESTO
-#        'PASSWORD': 'fuGvDyHxN9k8JyR', # <-- CAMBIA ESTO
-#        'HOST': '162.248.54.184', # <-- CAMBIA ESTO (ej: 'localhost' o una IP)
-#        'PORT': '1433', # El puerto por defecto de SQL Server
-#
-#        'OPTIONS': {
-#            'driver': 'ODBC Driver 17 for SQL Server',
-#        },
-#    }
-#}
+
 
 
 # Password validation

@@ -15,9 +15,9 @@
                 <hr>
                 <button type="submit" class="btn btn-primary">Guardar</button>
                 {% if form.instance.pk %}
-                <a href="{% url 'eliminar_reporte_diario' form.instance.pk %}" class="btn btn-danger">Eliminar</a>
+                <a href="{% url 'produccion:eliminar_reporte_diario' form.instance.pk %}" class="btn btn-danger">Eliminar</a>
                 {% endif %}
-                <a href="{% url 'lista_reportes_diarios' %}" class="btn btn-secondary">Cancelar</a>
+                <a href="{% url 'produccion:lista_reportes_diarios' %}" class="btn btn-secondary">Cancelar</a>
             </form>
         </div>
     </div>

@@ -12,7 +12,12 @@ from .models import (
     CorteDeBobina, 
     CorteDeBobinaDetalle,
     Producto,
-    ControlProcesoDetalle # <-- ESTA ES LA LÍNEA QUE FALTABA
+    ControlProcesoDetalle,
+    
+    # --- MODELOS AÑADIDOS A LA IMPORTACIÓN ---
+    Cliente, # <--- ¡EL QUE FALTABA!
+    Consignacion,
+    ConsignacionDetalle,
 )
 
 # --- FORMULARIOS PRINCIPALES ---
@@ -21,7 +26,7 @@ class OrdenProduccionForm(forms.ModelForm):
     class Meta:
         model = OrdenProduccion
         fields = '__all__'
-        # ... (puedes añadir widgets si los necesitas)
+
 
 class RequisicionForm(forms.ModelForm):
     class Meta:
@@ -43,36 +48,29 @@ class RequisicionForm(forms.ModelForm):
             'autorizado_por': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
+
 class ControlProcesoForm(forms.ModelForm):
     class Meta:
         model = ControlProceso
         fields = '__all__'
-        # --- INICIO DE LA CORRECCIÓN ---
-        # Con esto, le decimos a Django cómo queremos que se llame
-        # la etiqueta de este campo en específico.
         labels = {
             'temporada_anio': 'Temporada/Año',
         }
-        # --- FIN DE LA CORRECCIÓN ---
+
 
 class ReporteDiarioForm(forms.ModelForm):
     class Meta:
         model = ReporteDiarioProductoTerminado
         fields = '__all__'
-        # ... (puedes añadir widgets si los necesitas)
+
 
 class NotaIngresoForm(forms.ModelForm):
     class Meta:
         model = NotaIngresoProductoTerminado
         fields = '__all__'
-        # ... (puedes añadir widgets si los necesitas)
+
 
 # --- FORMULARIOS PARA CORTE DE BOBINA ---
-
-# En produccion/forms.py
-
-# En produccion/forms.py
-# En produccion/forms.py
 
 class CorteDeBobinaForm(forms.ModelForm):
     class Meta:
@@ -89,37 +87,20 @@ class CorteDeBobinaForm(forms.ModelForm):
             'ancho_bobina': forms.TextInput(attrs={'class': 'form-control'}),
             'medida_de_corte': forms.TextInput(attrs={'class': 'form-control'}),
         }
-    # La función __init__ que teníamos aquí se ha eliminado.
 
-
-# En produccion/forms.py
-# --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
 
 class CorteDeBobinaDetalleForm(forms.ModelForm):
-    
     def __init__(self, *args, **kwargs):
-        """
-        Este es el truco mágico. Se ejecuta cuando se crea el formulario.
-        """
         super().__init__(*args, **kwargs)
-        
-        # 1. Verificamos si estamos editando un objeto que ya existe
         if self.instance and self.instance.pk:
-            
-            # 2. Si hay un código de bobina guardado...
             if self.instance.codigo_bobina_usada:
-                # ...lo ponemos como la única opción en el dropdown.
                 self.fields['codigo_bobina_usada'].widget.choices = [
                     (self.instance.codigo_bobina_usada, self.instance.codigo_bobina_usada)
                 ]
-            
-            # 3. Hacemos lo mismo para el primer pliego producido
             if self.instance.codigo_pliego_producido_1:
                 self.fields['codigo_pliego_producido_1'].widget.choices = [
                     (self.instance.codigo_pliego_producido_1, self.instance.codigo_pliego_producido_1)
                 ]
-
-            # 4. Y también para el segundo pliego producido
             if self.instance.codigo_pliego_producido_2:
                 self.fields['codigo_pliego_producido_2'].widget.choices = [
                     (self.instance.codigo_pliego_producido_2, self.instance.codigo_pliego_producido_2)
@@ -133,8 +114,6 @@ class CorteDeBobinaDetalleForm(forms.ModelForm):
             'codigo_pliego_producido_2', 'cantidad_pliegos_2', 'resmas_producidas_2',
             'observaciones',
         ]
-        # Esta parte se asegura que los campos tengan la clase CSS correcta
-        # para que el JavaScript los encuentre.
         widgets = {
             'codigo_bobina_usada': forms.Select(attrs={'class': 'form-control bobina-search'}),
             'codigo_pliego_producido_1': forms.Select(attrs={'class': 'form-control papel-search'}),
@@ -147,8 +126,6 @@ class CorteDeBobinaDetalleForm(forms.ModelForm):
         }
 
 
-
-# Formulario para "EDITAR" con campos de texto simples
 class CorteDeBobinaDetalleFormEditar(forms.ModelForm):
     class Meta:
         model = CorteDeBobinaDetalle
@@ -165,26 +142,21 @@ class CorteDeBobinaDetalleFormEditar(forms.ModelForm):
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
 
-#30082025
+
+# --- FORMULARIO PRODUCTO ---
 class ProductoForm(forms.ModelForm):
-    # Hacemos que 'nombre3' (el tipo) sea un campo de selección claro.
-    # Este campo se mostrará en el formulario como 'Tipo de Producto'.
     nombre3 = forms.ChoiceField(
         label="Tipo de Producto",
         choices=[
             ('BOBINA', 'Bobina'),
             ('PAPEL', 'Papel'),
             ('QUIMICO', 'Químico'),
-            # Puedes añadir más opciones si las necesitas
         ],
-        # Usamos RadioSelect para que se vea como botones de opción.
         widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
     )
 
     class Meta:
         model = Producto
-        # Definimos los campos que el usuario podrá llenar.
-        # 'orden', 'cantidad' e 'idsucursal' se manejarán automáticamente en la vista.
         fields = ['codigo', 'nombre', 'nombre3']
         widgets = {
             'codigo': forms.TextInput(attrs={
@@ -197,13 +169,12 @@ class ProductoForm(forms.ModelForm):
             }),
         }
 
-#11092025
+
 class ControlProcesoDetalleForm(forms.ModelForm):
     class Meta:
         model = ControlProcesoDetalle
-        # Definimos los campos que queremos en nuestro formulario de detalle
-        fields = ['fecha', 'turno', 'compaginado', 'doblado_libro', 'doblado_portada', 'engrapado', 'pegado', 'refilado', 'empacado', 'unidades']
-        # Añadimos widgets para que se vean como campos de formulario estándar de Bootstrap
+        fields = ['fecha', 'turno', 'compaginado', 'doblado_libro', 'doblado_portada',
+                  'engrapado', 'pegado', 'refilado', 'empacado', 'unidades']
         widgets = {
             'fecha': forms.DateInput(attrs={'class': 'form-control form-control-sm', 'type': 'date'}),
             'turno': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
@@ -216,3 +187,145 @@ class ControlProcesoDetalleForm(forms.ModelForm):
             'empacado': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
             'unidades': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
         }
+
+# ==============================================================================
+# FORMULARIOS PARA EL MÓDULO DE CONSIGNACIONES
+# ==============================================================================
+
+class ClienteForm(forms.ModelForm):
+    class Meta:
+        model = Cliente
+        fields = ['codigo', 'nombre', 'nombrecomercial']
+
+class ConsignacionForm(forms.ModelForm):
+    cliente_search = forms.CharField(
+        label="Cliente",
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Busca por código o nombre...'}),
+        required=False
+    )
+
+    cliente = forms.ModelChoiceField(
+        queryset=Cliente.objects.using('rq').filter(empresa=10),   # 👈 FILTRAMOS AQUÍ
+        to_field_name='codigo',
+        empty_label="Seleccione un cliente",
+    )
+
+    class Meta:
+        model = Consignacion
+        fields = ['cliente', 'fecha', 'referencia']
+        widgets = {
+            'referencia': forms.TextInput(attrs={'readonly': 'readonly'}),
+            'fecha': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # --- Al editar ---
+        if self.instance and self.instance.pk:
+            cliente_codigo = getattr(self.instance, 'cliente_id', None)
+            if cliente_codigo:
+                try:
+                    cliente_obj = Cliente.objects.using('rq').filter(empresa=10).get(codigo=cliente_codigo)
+                    self.fields['cliente_search'].initial = f"{cliente_obj.nombre} ({cliente_obj.codigo})"
+                    self.initial['cliente'] = cliente_obj
+                except Cliente.DoesNotExist:
+                    self.fields['cliente_search'].initial = f"Cliente {cliente_codigo} no encontrado"
+                except Cliente.MultipleObjectsReturned:
+                    self.fields['cliente_search'].initial = f"⚠️ Código duplicado en otra empresa"
+
+# class ConsignacionForm(forms.ModelForm):
+#     # Campo para el buscador visual (no se guarda directamente)
+#     cliente_search = forms.CharField(
+#         label="Cliente",
+#         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Busca por código o nombre...'}),
+#         required=False 
+#     )
+
+#     cliente = forms.ModelChoiceField(
+#         queryset=Cliente.objects.using('rq').filter(empresa=10),  # 👈 aquí filtras solo los de sucursal 10 #queryset=Cliente.objects.using('rq').all(),  # 👈 usar la misma base
+#         to_field_name='codigo',
+#         empty_label="Seleccione un cliente",
+#     )
+
+#     class Meta:
+#         model = Consignacion
+#         fields = ['cliente', 'fecha', 'referencia']
+#         widgets = {
+#             'referencia': forms.TextInput(attrs={'readonly': 'readonly'}),
+#             'fecha': forms.DateInput(attrs={'type': 'date'}),
+#         }
+
+#     # 3. Ya NO necesitamos configurar 'cliente' en __init__
+
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+        
+#         # --- Lógica para mostrar el nombre si estamos editando ---
+#         if self.instance and self.instance.pk:
+#             # Obtenemos el código de cliente guardado ('cliente_id' es el nombre por defecto)
+#             cliente_codigo = getattr(self.instance, 'cliente_id', None) 
+#             if cliente_codigo:
+#                 try:
+#                     # Buscamos el objeto Cliente en 'rq' usando el código
+#                     cliente_obj = Cliente.objects.using('rq').get(codigo=cliente_codigo)
+#                     # Ponemos el texto en el buscador visible
+#                     self.fields['cliente_search'].initial = f"{cliente_obj.nombre} ({cliente_obj.codigo})"
+#                     # Ponemos el OBJETO Cliente como valor inicial del campo 'cliente'
+#                     self.initial['cliente'] = cliente_obj 
+#                 except Cliente.DoesNotExist:
+#                     self.fields['cliente_search'].initial = f"Cliente {cliente_codigo} no encontrado en DB 'rq'"
+#                 except Cliente.MultipleObjectsReturned:
+#                      self.fields['cliente_search'].initial = f"ERROR: Múltiples clientes con código {cliente_codigo} en DB 'rq'"
+#             else:
+#                  self.fields['cliente_search'].initial = "Cliente no especificado"
+#         # --- Fin lógica de edición ---
+
+
+from decimal import Decimal, ROUND_HALF_UP
+
+class ConsignacionDetalleForm(forms.ModelForm):
+    producto = forms.ModelChoiceField(
+        queryset=Producto.objects.using('rq').all(),
+        widget=forms.HiddenInput()
+    )
+
+    class Meta:
+        model = ConsignacionDetalle
+        fields = ['producto', 'cantidad', 'precio', 'total_linea']
+        widgets = {
+            'cantidad': forms.NumberInput(attrs={'class': 'form-control cantidad'}),
+            'precio': forms.NumberInput(attrs={'class': 'form-control precio'}),
+            'total_linea': forms.NumberInput(
+                attrs={'class': 'form-control total-linea', 'readonly': 'readonly'}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['total_linea'].required = False  # 👈 evitar error required
+
+    def clean_id(self):
+        """Permite guardar líneas nuevas sin tener campo 'id' en el POST."""
+        return self.cleaned_data.get('id', None)
+
+    def clean_total_linea(self):
+        """Calcula y redondea el total con 2 decimales."""
+        cantidad = self.cleaned_data.get('cantidad') or 0
+        precio = self.cleaned_data.get('precio') or 0
+        total = Decimal(cantidad) * Decimal(precio)
+        return total.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+# Usamos el nombre correcto: ConsignacionDetalle
+DetalleConsignacionFormSet = forms.inlineformset_factory(
+    Consignacion,
+    ConsignacionDetalle,
+    form=ConsignacionDetalleForm,
+    fields='__all__',
+    extra=1,
+    can_delete=True,
+    fk_name='consignacion',
+)
+
+    
+

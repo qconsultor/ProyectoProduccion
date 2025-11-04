@@ -1,0 +1,65 @@
+{% extends 'produccion/base.html' %}
+
+{% block title %}Detalle de Consignación #{{ consignacion.id }}{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">Detalle de Consignación #{{ consignacion.id }}</h3>
+        <div>
+            <a href="{% url 'consignacion:lista_consignaciones' %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Volver a la lista
+            </a>
+            <a href="{% url 'consignacion:editar_consignacion' pk=consignacion.pk %}" class="btn btn-warning btn-sm">
+                <i class="fas fa-edit me-1"></i> Editar
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <strong>Cliente:</strong> {{ cliente_nombre }}
+            </div>
+            <div class="col-md-3">
+                <strong>Fecha:</strong> {{ consignacion.fecha|date:"d/m/Y" }}
+            </div>
+            <div class="col-md-3">
+                <strong>Referencia:</strong> {{ consignacion.referencia|default:"N/A" }}
+            </div>
+        </div>
+        
+        <h5>Productos en Consignación</h5>
+        <table class="table table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Producto</th>
+                    <th class="text-end">Cantidad</th>
+                    <th class="text-end">Precio Unitario</th>
+                    <th class="text-end">Total Línea</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for detalle in consignacion.detalles.all %}
+                <tr>
+                    <td>{{ detalle.producto.nombre }} ({{ detalle.producto.codigo }})</td>
+                    <td class="text-end">{{ detalle.cantidad|floatformat:2 }}</td>
+                    <td class="text-end">${{ detalle.precio|floatformat:2 }}</td>
+                    <td class="text-end">${{ detalle.total_linea|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="table-dark">
+                    <td colspan="3" class="text-end"><strong>TOTAL CONSIGNADO</strong></td>
+                    <td class="text-end"><strong>${{ consignacion.total|floatformat:2 }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    <div class="card-footer text-end">
+        <a href="{% url 'consignacion:registrar_devolucion' consignacion_id=consignacion.id %}" class="btn btn-info">
+            <i class="fas fa-undo me-2"></i> Registrar Devolución
+        </a>
+    </div>
+</div>
+{% endblock %}
