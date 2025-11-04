@@ -219,8 +219,13 @@ def editar_consignacion(request, pk):
                 total_general += detalle.total_linea
 
             # 🔹 Eliminar los marcados como DELETE
-            for obj in formset.deleted_objects:
-                obj.delete()
+            #for obj in formset.deleted_objects:
+            #    obj.delete()
+            # ✅ ahora
+            for form in formset.deleted_forms:
+                if form.instance.pk:
+                    form.instance.delete()
+
 
             # 🔹 Actualizar total de la consignación
             consignacion.total = total_general

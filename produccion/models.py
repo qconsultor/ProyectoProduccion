@@ -279,7 +279,6 @@ class ConsignacionDetalle(models.Model):
     )
 
     class Meta:
-        #managed = True   # 👈 TEMPORALMENTE
         managed = False    # 👈 lo regresamos
         db_table = 'produccion_consignaciondetalle'   # ✅ nombre correcto
 
