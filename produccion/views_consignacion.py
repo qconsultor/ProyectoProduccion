@@ -1,3 +1,4 @@
+from .forms_consignacion_detalle import ConsignacionDetalleFormSet
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.db.models import Q, Max, Func, IntegerField, F,Sum
@@ -65,7 +66,7 @@ def crear_consignacion(request):
         formset = DetalleConsignacionFormSet(request.POST or None, prefix='detalles')
         print('🧾 POST recibido:')
         print(request.POST)
-        print('🗑️ Objetos marcados para eliminar:', formset.deleted_objects)
+        #print('🗑️ Objetos marcados para eliminar:', formset.deleted_objects)
         if form.is_valid() and formset.is_valid():
             try:
                 consignacion = form.save(commit=False)
@@ -239,10 +240,41 @@ def editar_consignacion(request, pk):
 
     else:
         form = ConsignacionForm(instance=consignacion)
+        
+        # 🔹 Crear el formset primero
         formset = DetalleFormSet(
             queryset=ConsignacionDetalle.objects.filter(consignacion=consignacion),
             prefix='detalles'
         )
+        
+        # 🔹 Pre-cargar los productos desde la BD 'rq' manualmente
+        producto_ids = []
+        for form_detalle in formset:
+            if hasattr(form_detalle.instance, 'producto_id') and form_detalle.instance.producto_id:
+                # Convertir a int por si acaso viene como string
+                try:
+                    pid = int(form_detalle.instance.producto_id)
+                    producto_ids.append(pid)
+                except (ValueError, TypeError):
+                    print(f"⚠️ Error convirtiendo producto_id: {form_detalle.instance.producto_id}")
+        
+        # 🔹 Obtener todos los productos en una sola query
+        if producto_ids:
+            productos_dict = {
+                p.orden: p for p in Producto.objects.using('rq').filter(orden__in=producto_ids)
+            }
+        else:
+            productos_dict = {}
+        
+        # 🔹 Asignar los productos a cada formulario del formset
+        for form_detalle in formset:
+            if hasattr(form_detalle.instance, 'producto_id') and form_detalle.instance.producto_id:
+                try:
+                    pid = int(form_detalle.instance.producto_id)
+                    producto_obj = productos_dict.get(pid)
+                    form_detalle.instance.producto_obj = producto_obj
+                except (ValueError, TypeError) as e:
+                    print(f"⚠️ Error procesando detalle: {e}")
 
     context = {
         'form': form,
@@ -289,7 +321,27 @@ def eliminar_consignacion(request, pk):
 def registrar_devolucion(request, consignacion_id):
     messages.info(request, "Funcionalidad de devoluciones en construcción.")
     return redirect('produccion:detalle_consignacion', pk=consignacion_id)
+# ===============================
+# 🧩 FormSet personalizado
+# ===============================
+from django.forms import BaseInlineFormSet
 
+class ConsignacionDetalleBaseFormSet(BaseInlineFormSet):
+    def clean(self):
+        """Ignora formularios vacíos para evitar el error 'This field is required'."""
+        super().clean()
+        for form in self.forms:
+            # Si el formulario está vacío, no genera error
+            if not form.cleaned_data:
+                continue
+
+            producto = form.cleaned_data.get('producto')
+            cantidad = form.cleaned_data.get('cantidad')
+            precio = form.cleaned_data.get('precio')
+
+            # Si tiene cantidad o precio pero no producto → error
+            if not producto and (cantidad or precio):
+                form.add_error('producto', 'Debe seleccionar un producto.')
 # ==============================================================================
 # APIs para los buscadores (CON FILTROS AÑADIDOS)
 # ==============================================================================
@@ -314,16 +366,23 @@ def buscar_clientes_api(request):
 def buscar_productos_consignacion_api(request):
     term = request.GET.get('term', '')
     
+    # 🔹 Filtrar productos EXCLUYENDO bobinas, químicos y tintas
     productos_encontrados = Producto.objects.using('rq').filter(
         Q(codigo__icontains=term) | Q(nombre__icontains=term),
         idsucursal=10 
+    ).exclude(
+        Q(nombre__icontains='BOBINA') | 
+        Q(nombre__icontains='QUIMICO') | 
+        Q(nombre__icontains='TINTA')
     ).order_by('nombre')[:15]
 
     resultados = []
-    for producto in productos_encontrados: # Ahora producto SÍ tendrá .orden
+    for producto in productos_encontrados:
         resultados.append({
             'id': producto.orden,  # Usamos la PK 'orden' (un número)
-            'text': f"{producto.codigo} | {producto.nombre}"
+            'text': f"{producto.codigo} | {producto.nombre}",
+            'precio': float(producto.venta),  # Precio de venta
+            'existencia': float(producto.cantidad)  # Stock disponible
         })
     
     return JsonResponse({'results': resultados}, safe=False)

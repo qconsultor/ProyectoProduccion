@@ -328,4 +328,22 @@ DetalleConsignacionFormSet = forms.inlineformset_factory(
 )
 
     
+#07112025
+# ===============================
+# 🧩 FormSet personalizado
+# ===============================
+from django.forms import BaseInlineFormSet
+
+class ConsignacionDetalleBaseFormSet(BaseInlineFormSet):
+    def clean(self):
+        """Ignorar filas totalmente vacías en el formset"""
+        super().clean()
+        for form in self.forms:
+            producto = form.cleaned_data.get('producto')
+            cantidad = form.cleaned_data.get('cantidad')
+            precio = form.cleaned_data.get('precio')
+
+            # Si los tres están vacíos, no validar este form
+            if not producto and not cantidad and not precio:
+                form.cleaned_data['DELETE'] = True
 
