@@ -2,7 +2,19 @@
 
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import RequisicionDetalle, Producto, Kardex , CorteDeBobinaDetalle , NotaIngresoDetalle
+from .models import (
+    RequisicionDetalle, Producto, Kardex, CorteDeBobinaDetalle, 
+    NotaIngresoDetalle, ConsignacionDetalle, ReporteDiarioDetalle,
+    ControlProceso, ControlProcesoDetalle
+)
+from .models_liquidacion import LiquidacionDetalle
+
+print("="*60)
+print("✅ SIGNALS.PY CARGADO CORRECTAMENTE")
+print(f"✅ LiquidacionDetalle importado: {LiquidacionDetalle}")
+print(f"✅ ReporteDiarioDetalle importado: {ReporteDiarioDetalle}")
+print(f"✅ NotaIngresoDetalle importado: {NotaIngresoDetalle}")
+print("="*60)
 
 @receiver(post_save, sender=RequisicionDetalle)
 def actualizar_kardex_por_requisicion(sender, instance, created, **kwargs):
@@ -160,3 +172,141 @@ def actualizar_kardex_por_ingreso(sender, instance, created, **kwargs):
                 print(f"ADVERTENCIA: Producto terminado con Código '{instance.codigo}' y sucursal 10 no fue encontrado.")
         except Exception as e:
             print(f"ERROR en la señal de Nota de Ingreso: {e}")
+
+
+# ========================================================================
+# SEÑAL: CONSIGNACIÓN → SALIDA DEL KARDEX
+# ========================================================================
+@receiver(post_save, sender=ConsignacionDetalle)
+def actualizar_kardex_por_consignacion(sender, instance, created, **kwargs):
+    """
+    Cuando se crea una consignación, se da SALIDA del Kardex
+    porque la mercancía sale físicamente del almacén.
+    """
+    print(f"🔔 SEÑAL CONSIGNACIÓN DISPARADA: created={created}, cantidad={instance.cantidad}")
+    
+    if created:
+        try:
+            producto = Producto.objects.using('rq').get(
+                orden=instance.producto_id,
+                idsucursal=10
+            )
+            
+            saldo_anterior = producto.cantidad
+            nuevo_saldo = saldo_anterior - instance.cantidad
+            
+            # Registrar SALIDA en Kardex
+            Kardex.objects.using('rq').create(
+                producto=producto,
+                codigo=producto.codigo,
+                descripcion=producto.nombre,
+                documento=f"Consignación N° {instance.consignacion.referencia}",
+                salida=instance.cantidad,
+                saldo=nuevo_saldo,
+                idsucursal=10
+            )
+            
+            # Actualizar existencia del producto
+            producto.cantidad = nuevo_saldo
+            producto.save(using='rq')
+            
+            print(f"✅ Kardex actualizado: SALIDA de {instance.cantidad} unidades de {producto.nombre}")
+            
+        except Producto.DoesNotExist:
+            print(f"❌ ERROR: Producto con orden {instance.producto_id} no encontrado en RQ")
+        except Exception as e:
+            print(f"❌ ERROR en señal de Consignación: {e}")
+
+
+# ========================================================================
+# SEÑAL: LIQUIDACIÓN → ENTRADA AL KARDEX (solo productos vendidos)
+# ========================================================================
+@receiver(post_save, sender=LiquidacionDetalle)
+def actualizar_kardex_por_liquidacion(sender, instance, created, **kwargs):
+    """
+    Cuando se liquida una consignación:
+    - Productos VENDIDOS: ENTRADA al Kardex (para que RQ los pueda facturar)
+    - Productos DEVUELTOS: NO se tocan (ya están en inventario)
+    """
+    print(f"🔔 SEÑAL LIQUIDACIÓN DISPARADA: created={created}, vendida={instance.cantidad_vendida}")
+    
+    if created and instance.cantidad_vendida > 0:
+        try:
+            from decimal import Decimal
+            
+            producto = Producto.objects.using('rq').get(
+                orden=instance.producto_id,
+                idsucursal=10
+            )
+            
+            saldo_anterior = Decimal(str(producto.cantidad))
+            cantidad_vendida = Decimal(str(instance.cantidad_vendida))
+            nuevo_saldo = saldo_anterior + cantidad_vendida
+            
+            # Registrar ENTRADA en Kardex (solo lo vendido)
+            Kardex.objects.using('rq').create(
+                producto=producto,
+                codigo=producto.codigo,
+                descripcion=producto.nombre,
+                documento=f"Liquidación N° {instance.liquidacion.referencia} (Venta)",
+                entrada=instance.cantidad_vendida,
+                saldo=nuevo_saldo,
+                idsucursal=10
+            )
+            
+            # Actualizar existencia del producto
+            producto.cantidad = nuevo_saldo
+            producto.save(using='rq')
+            
+            print(f"✅ Kardex actualizado: ENTRADA de {instance.cantidad_vendida} unidades de {producto.nombre} para facturar")
+            
+        except Producto.DoesNotExist:
+            print(f"❌ ERROR: Producto con orden {instance.producto_id} no encontrado en RQ")
+        except Exception as e:
+            print(f"❌ ERROR en señal de Liquidación: {e}")
+
+
+# ========================================================================
+# SEÑAL: REPORTE DIARIO → CONTROL DE PROCESO
+# ========================================================================
+@receiver(post_save, sender=ReporteDiarioDetalle)
+def sincronizar_reporte_diario_a_control_proceso(sender, instance, created, **kwargs):
+    """
+    Cuando se guarda un detalle de Reporte Diario, se sincroniza automáticamente
+    con la tabla ControlProcesoDetalle para alimentar el producto en proceso.
+    """
+    print(f"🔔 SEÑAL REPORTE DIARIO DISPARADA: created={created}, producto={instance.nombre_producto}")
+    
+    if created:
+        try:
+            # Buscar o crear el ControlProceso para este producto
+            control_proceso, created_control = ControlProceso.objects.get_or_create(
+                nombre_del_libro=instance.nombre_producto,
+                temporada_anio=instance.reporte_diario.fecha.year,
+                defaults={
+                    'elaborado_por': instance.reporte_diario.elaborado_por or '',
+                    'revisado_por': instance.reporte_diario.revisado_por or '',
+                }
+            )
+            
+            # Crear el detalle en ControlProcesoDetalle
+            ControlProcesoDetalle.objects.create(
+                control_proceso=control_proceso,
+                fecha=instance.reporte_diario.fecha,
+                turno=1 if instance.reporte_diario.turno.upper() == 'MAÑANA' else 2,
+                compaginado=instance.compaginado or 0,
+                doblado_libro=instance.doblado_libro or 0,
+                doblado_portada=instance.doblado_portada or 0,
+                engrapado=instance.engrapado or 0,
+                empacado=instance.empacado or 0,
+            )
+            
+            print(f"✅ Control de Proceso actualizado: {instance.nombre_producto}")
+            print(f"   - Compaginado: {instance.compaginado}")
+            print(f"   - Doblado Libro: {instance.doblado_libro}")
+            print(f"   - Doblado Portada: {instance.doblado_portada}")
+            print(f"   - Engrapado: {instance.engrapado}")
+            print(f"   - Empacado: {instance.empacado}")
+            
+        except Exception as e:
+            print(f"❌ ERROR en señal de Reporte Diario: {e}")

@@ -16,7 +16,7 @@ from .models import (
     OrdenProduccion, RequisicionEncabezado, ControlProceso, CorteDeBobina, CorteDeBobinaDetalle, 
     ReporteDiarioProductoTerminado, NotaIngresoProductoTerminado, 
     Producto, Kardex,
-    ControlProcesoDetalle # <-- AÑADE ESTA LÍNEA QUE FALTABA
+    ControlProcesoDetalle, Consignacion
 )
 #from .forms import OrdenProduccionForm, RequisicionForm
 from .forms import OrdenProduccionForm, RequisicionForm, ControlProcesoForm , ReporteDiarioForm , NotaIngresoForm, CorteDeBobinaForm, CorteDeBobinaDetalleForm, CorteDeBobinaDetalleFormEditar,ProductoForm,ControlProcesoDetalleForm
@@ -25,12 +25,148 @@ from .forms import OrdenProduccionForm, RequisicionForm, ControlProcesoForm , Re
 # En produccion/views.py
 
 def dashboard_produccion(request):
-    # Buscamos todas las órdenes, las más nuevas primero
-    ordenes = OrdenProduccion.objects.all().order_by('-id') 
-
+    from django.db.models import Sum, Count, Q
+    from datetime import datetime, timedelta
+    from produccion.models_liquidacion import Liquidacion
+    import json
+    
+    # ========================================
+    # ÓRDENES DE PRODUCCIÓN (Base Personal)
+    # ========================================
+    ordenes = OrdenProduccion.objects.all().order_by('-id')
+    total_ordenes = ordenes.count()
+    
+    # Órdenes creadas hoy
+    hoy = datetime.now().date()
+    ordenes_hoy = ordenes.filter(fecha=hoy).count()
+    
+    # Estadísticas por estado
+    ordenes_pendientes = ordenes.filter(status='PENDIENTE').count()
+    ordenes_proceso = ordenes.filter(status='EN_PROCESO').count()
+    ordenes_completadas = ordenes.filter(status='COMPLETADO').count()
+    ordenes_detenidas = ordenes.filter(status='DETENIDO').count()
+    
+    # Órdenes completadas hoy
+    ordenes_completadas_hoy = ordenes.filter(
+        status='COMPLETADO',
+        fecha=hoy
+    ).count()
+    
+    # Órdenes vencidas (ejemplo: más de 30 días sin completar)
+    fecha_limite = datetime.now().date() - timedelta(days=30)
+    ordenes_vencidas = ordenes.filter(
+        Q(status='PENDIENTE') | Q(status='EN_PROCESO'),
+        fecha__lt=fecha_limite
+    ).count()
+    
+    # ========================================
+    # CONSIGNACIONES (Base Personal)
+    # ========================================
+    consignaciones = Consignacion.objects.all()
+    total_consignaciones = consignaciones.count()
+    
+    # Consignaciones este mes
+    mes_actual = datetime.now().month
+    año_actual = datetime.now().year
+    consignaciones_mes = consignaciones.filter(
+        fecha__month=mes_actual,
+        fecha__year=año_actual
+    ).count()
+    
+    # Datos para gráfico de consignaciones (últimos 6 meses)
+    meses_labels = []
+    consignaciones_data = []
+    for i in range(5, -1, -1):
+        fecha = datetime.now() - timedelta(days=30*i)
+        mes_nombre = fecha.strftime('%b')
+        meses_labels.append(mes_nombre)
+        
+        count = consignaciones.filter(
+            fecha__month=fecha.month,
+            fecha__year=fecha.year
+        ).count()
+        consignaciones_data.append(count)
+    
+    # ========================================
+    # LIQUIDACIONES (Base Personal)
+    # ========================================
+    liquidaciones = Liquidacion.objects.all()
+    total_liquidaciones = liquidaciones.count()
+    
+    # Monto total pendiente
+    monto_pendiente = liquidaciones.aggregate(Sum('total'))['total__sum'] or 0
+    
+    # ========================================
+    # PRODUCTOS (Base Personal - Producto y Kardex)
+    # ========================================
+    # Contar productos totales
+    total_productos = Producto.objects.count()
+    
+    # Productos con stock bajo (saldo menor a 10 unidades)
+    # Usamos Kardex para verificar el saldo
+    productos_bajo_stock = Kardex.objects.filter(saldo__lt=10, saldo__gt=0).count()
+    
+    # ========================================
+    # TIEMPO PROMEDIO DE PRODUCCIÓN POR ESTADO
+    # ========================================
+    # Calcular días promedio desde creación hasta hoy para cada estado
+    from django.db.models import Avg, F, ExpressionWrapper, fields
+    
+    tiempo_promedio = []
+    for estado in ['PENDIENTE', 'EN_PROCESO', 'COMPLETADO', 'DETENIDO']:
+        ordenes_estado = ordenes.filter(status=estado)
+        if ordenes_estado.exists():
+            # Calcular días promedio
+            dias_promedio = ordenes_estado.annotate(
+                dias=ExpressionWrapper(
+                    datetime.now().date() - F('fecha'),
+                    output_field=fields.DurationField()
+                )
+            ).aggregate(promedio=Avg('dias'))
+            
+            # Convertir a días
+            if dias_promedio['promedio']:
+                dias = dias_promedio['promedio'].days
+            else:
+                dias = 0
+        else:
+            dias = 0
+        
+        tiempo_promedio.append(dias)
+    
+    # ========================================
+    # CONTEXTO PARA EL TEMPLATE
+    # ========================================
     contexto = {
-        'ordenes': ordenes
+        # Órdenes
+        'ordenes': ordenes[:5],  # Solo las 5 más recientes para la tabla
+        'total_ordenes': total_ordenes,
+        'ordenes_hoy': ordenes_hoy,
+        'ordenes_pendientes': ordenes_pendientes,
+        'ordenes_proceso': ordenes_proceso,
+        'ordenes_completadas': ordenes_completadas,
+        'ordenes_detenidas': ordenes_detenidas,
+        'ordenes_vencidas': ordenes_vencidas,
+        'ordenes_completadas_hoy': ordenes_completadas_hoy,
+        
+        # Consignaciones
+        'total_consignaciones': total_consignaciones,
+        'consignaciones_mes': consignaciones_mes,
+        'meses_labels': json.dumps(meses_labels),
+        'consignaciones_data': json.dumps(consignaciones_data),
+        
+        # Liquidaciones
+        'total_liquidaciones': total_liquidaciones,
+        'monto_pendiente': monto_pendiente,
+        
+        # Productos
+        'total_productos': total_productos,
+        'productos_bajo_stock': productos_bajo_stock,
+        
+        # Tiempo promedio de producción
+        'tiempo_promedio_data': json.dumps(tiempo_promedio),
     }
+    
     return render(request, 'produccion/dashboard.html', contexto)
 
 # Create your views here. ORDENES
@@ -279,25 +415,66 @@ def detalle_reporte_diario(request, reporte_id):
     return render(request, 'produccion/detalle_reporte_diario.html', {'reporte': reporte})
 
 def crear_reporte_diario(request):
+    from .forms import ReporteDiarioDetalleFormSet
+    
     if request.method == 'POST':
         form = ReporteDiarioForm(request.POST)
-        if form.is_valid():
-            form.save()
+        formset = ReporteDiarioDetalleFormSet(request.POST)
+        
+        print("="*80)
+        print("📝 GUARDANDO REPORTE DIARIO")
+        print(f"Form válido: {form.is_valid()}")
+        print(f"Formset válido: {formset.is_valid()}")
+        
+        if form.is_valid() and formset.is_valid():
+            reporte = form.save()
+            print(f"✅ Reporte guardado: {reporte}")
+            
+            formset.instance = reporte
+            detalles_guardados = formset.save()
+            print(f"✅ Detalles guardados: {len(detalles_guardados)}")
+            for detalle in detalles_guardados:
+                print(f"   - {detalle.nombre_producto}: Compaginado={detalle.compaginado}")
+            
             return redirect('produccion:lista_reportes_diarios')
+        else:
+            print("❌ ERRORES EN EL FORMULARIO:")
+            if not form.is_valid():
+                print(f"   Form errors: {form.errors}")
+            if not formset.is_valid():
+                print(f"   Formset errors: {formset.errors}")
+        print("="*80)
     else:
         form = ReporteDiarioForm()
-    return render(request, 'produccion/crear_reporte_diario.html', {'form': form})
+        formset = ReporteDiarioDetalleFormSet()
+    
+    return render(request, 'produccion/crear_reporte_diario.html', {
+        'form': form,
+        'formset': formset
+    })
 
 def editar_reporte_diario(request, reporte_id):
+    from .forms import ReporteDiarioDetalleFormSet
+    
     reporte = get_object_or_404(ReporteDiarioProductoTerminado, pk=reporte_id)
+    
     if request.method == 'POST':
         form = ReporteDiarioForm(request.POST, instance=reporte)
-        if form.is_valid():
+        formset = ReporteDiarioDetalleFormSet(request.POST, instance=reporte)
+        
+        if form.is_valid() and formset.is_valid():
             form.save()
+            formset.save()
             return redirect('produccion:lista_reportes_diarios')
     else:
         form = ReporteDiarioForm(instance=reporte)
-    return render(request, 'produccion/crear_reporte_diario.html', {'form': form, 'reporte': reporte})
+        formset = ReporteDiarioDetalleFormSet(instance=reporte)
+    
+    return render(request, 'produccion/crear_reporte_diario.html', {
+        'form': form,
+        'formset': formset,
+        'reporte': reporte
+    })
 
 def eliminar_reporte_diario(request, reporte_id):
     reporte = get_object_or_404(ReporteDiarioProductoTerminado, pk=reporte_id)
@@ -317,25 +494,92 @@ def detalle_nota_ingreso(request, nota_id):
     return render(request, 'produccion/detalle_nota_ingreso.html', {'nota': nota})
 
 def crear_nota_ingreso(request):
+    from .forms import NotaIngresoDetalleFormSet
+    from django.db.models import Max
+    
     if request.method == 'POST':
-        form = NotaIngresoForm(request.POST)
-        if form.is_valid():
-            form.save()
+        # Verificar si el número de nota ya existe y regenerarlo
+        numero_nota_post = request.POST.get('numero_nota')
+        if NotaIngresoProductoTerminado.objects.filter(numero_nota=numero_nota_post).exists():
+            # Generar nuevo número (buscar el máximo numérico)
+            notas = NotaIngresoProductoTerminado.objects.all().values_list('numero_nota', flat=True)
+            
+            numeros_validos = []
+            for nota in notas:
+                try:
+                    numeros_validos.append(int(nota))
+                except (ValueError, TypeError):
+                    pass
+            
+            if numeros_validos:
+                siguiente_numero = max(numeros_validos) + 1
+            else:
+                siguiente_numero = 1
+            
+            # Crear una copia mutable de POST y actualizar el número
+            post_data = request.POST.copy()
+            post_data['numero_nota'] = str(siguiente_numero)
+            form = NotaIngresoForm(post_data)
+            formset = NotaIngresoDetalleFormSet(post_data)
+        else:
+            form = NotaIngresoForm(request.POST)
+            formset = NotaIngresoDetalleFormSet(request.POST)
+        
+        print("="*80)
+        print("📝 GUARDANDO NOTA DE INGRESO")
+        print(f"Form válido: {form.is_valid()}")
+        print(f"Formset válido: {formset.is_valid()}")
+        
+        if form.is_valid() and formset.is_valid():
+            nota = form.save()
+            print(f"✅ Nota guardada: {nota}")
+            
+            formset.instance = nota
+            detalles_guardados = formset.save()
+            print(f"✅ Detalles guardados: {len(detalles_guardados)}")
+            for detalle in detalles_guardados:
+                print(f"   - {detalle.descripcion_producto}: {detalle.unidades} unidades")
+            
+            print("="*80)
             return redirect('produccion:lista_notas_ingreso')
+        else:
+            print("❌ ERRORES EN EL FORMULARIO:")
+            if not form.is_valid():
+                print(f"   Form errors: {form.errors}")
+            if not formset.is_valid():
+                print(f"   Formset errors: {formset.errors}")
+            print("="*80)
     else:
         form = NotaIngresoForm()
-    return render(request, 'produccion/crear_nota_ingreso.html', {'form': form})
+        formset = NotaIngresoDetalleFormSet()
+    
+    return render(request, 'produccion/crear_nota_ingreso.html', {
+        'form': form,
+        'formset': formset
+    })
 
 def editar_nota_ingreso(request, nota_id):
+    from .forms import NotaIngresoDetalleFormSet
+    
     nota = get_object_or_404(NotaIngresoProductoTerminado, pk=nota_id)
+    
     if request.method == 'POST':
         form = NotaIngresoForm(request.POST, instance=nota)
-        if form.is_valid():
+        formset = NotaIngresoDetalleFormSet(request.POST, instance=nota)
+        
+        if form.is_valid() and formset.is_valid():
             form.save()
+            formset.save()
             return redirect('produccion:lista_notas_ingreso')
     else:
         form = NotaIngresoForm(instance=nota)
-    return render(request, 'produccion/crear_nota_ingreso.html', {'form': form, 'nota': nota})
+        formset = NotaIngresoDetalleFormSet(instance=nota)
+    
+    return render(request, 'produccion/crear_nota_ingreso.html', {
+        'form': form,
+        'formset': formset,
+        'nota': nota
+    })
 
 def eliminar_nota_ingreso(request, nota_id):
     nota = get_object_or_404(NotaIngresoProductoTerminado, pk=nota_id)
@@ -1115,4 +1359,45 @@ def buscar_productos_consignacion_api(request):
     )[:20]
     
     results = [{'id': p.pk, 'text': f"{p.nombre} ({p.codigo})"} for p in productos]
+    return JsonResponse({'results': results})
+
+
+def buscar_productos_nota_ingreso_api(request):
+    """
+    API para buscar productos terminados para Notas de Ingreso.
+    Filtra por idsucursal=10 y excluye BOBINA, QUIMICO, PAPEL.
+    Formato compatible con Select2.
+    """
+    query = request.GET.get('q', '')  # Select2 usa 'q' en lugar de 'term'
+    
+    print(f"🔍 BÚSQUEDA DE PRODUCTOS NOTA INGRESO - Query: '{query}'")
+    
+    if len(query) < 1:
+        return JsonResponse({'results': []})
+    
+    # Filtrar productos de la base RQ
+    productos = Producto.objects.using('rq').filter(
+        Q(codigo__icontains=query) | Q(nombre__icontains=query),
+        idsucursal=10
+    ).exclude(
+        nombre3__in=['BOBINA', 'QUIMICO', 'PAPEL']
+    )[:20]
+    
+    print(f"✅ Productos encontrados: {productos.count()}")
+    for p in productos[:5]:
+        print(f"   - {p.codigo} - {p.nombre}")
+    
+    # Formato para Select2
+    results = [
+        {
+            'id': p.codigo,  # El código será el valor
+            'text': f"{p.codigo} - {p.nombre}",  # Lo que se muestra
+            'nombre': p.nombre,  # Dato adicional para llenar descripción
+            'codigo': p.codigo
+        } 
+        for p in productos
+    ]
+    
+    print(f"📤 Enviando {len(results)} resultados")
+    
     return JsonResponse({'results': results})

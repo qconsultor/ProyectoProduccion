@@ -1,0 +1,118 @@
+{% extends "produccion/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h2><i class="fas fa-file-invoice me-2"></i>Liquidación #{{ liquidacion.id }}</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'liquidacion:listar' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver a Lista
+            </a>
+            <a href="{% url 'liquidacion:editar' liquidacion.id %}" class="btn btn-warning">
+                <i class="fas fa-edit me-2"></i>Editar
+            </a>
+        </div>
+    </div>
+
+    <!-- Información General -->
+    <div class="card mb-3">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Información General</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Cliente:</strong><br>
+                    <span class="text-muted">{{ cliente_nombre }}</span>
+                </div>
+                <div class="col-md-3">
+                    <strong>Fecha:</strong><br>
+                    <span class="text-muted">{{ liquidacion.fecha|date:"d/m/Y" }}</span>
+                </div>
+                <div class="col-md-3">
+                    <strong>Referencia:</strong><br>
+                    <span class="badge bg-info">{{ liquidacion.referencia }}</span>
+                </div>
+                <div class="col-md-3">
+                    <strong>Consignación:</strong><br>
+                    <span class="text-muted">{{ liquidacion.consignacion_id|default:"-" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detalle de Productos -->
+    <div class="card mb-3">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-boxes me-2"></i>Detalle de Productos</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="text-center">#</th>
+                            <th>Producto</th>
+                            <th class="text-center">Consignado</th>
+                            <th class="text-center">Devuelto</th>
+                            <th class="text-center">Vendido</th>
+                            <th class="text-center">Pendiente</th>
+                            <th class="text-end">Precio</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in detalles_enriquecidos %}
+                        <tr>
+                            <td class="text-center">{{ forloop.counter }}</td>
+                            <td>{{ item.producto_nombre }}</td>
+                            <td class="text-center">{{ item.detalle.cantidad_consignada }}</td>
+                            <td class="text-center">{{ item.detalle.cantidad_devuelta }}</td>
+                            <td class="text-center">{{ item.detalle.cantidad_vendida }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-warning text-dark">{{ item.detalle.cantidad_pendiente }}</span>
+                            </td>
+                            <td class="text-end">${{ item.detalle.precio|floatformat:2 }}</td>
+                            <td class="text-end"><strong>${{ item.detalle.total_linea|floatformat:2 }}</strong></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted">
+                                No hay productos en esta liquidación.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-secondary">
+                        <tr>
+                            <td colspan="7" class="text-end"><strong>TOTAL LIQUIDACIÓN:</strong></td>
+                            <td class="text-end"><strong>${{ liquidacion.total|floatformat:2 }}</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botones de Exportación -->
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="fas fa-download me-2"></i>Exportar Liquidación</h5>
+        </div>
+        <div class="card-body text-center">
+            <a href="{% url 'liquidacion:exportar_pdf' liquidacion.id %}" class="btn btn-danger btn-lg me-2" target="_blank">
+                <i class="fas fa-file-pdf me-2"></i>Descargar PDF
+            </a>
+            <a href="{% url 'liquidacion:exportar_excel' liquidacion.id %}" class="btn btn-success btn-lg me-2">
+                <i class="fas fa-file-excel me-2"></i>Descargar Excel
+            </a>
+            <a href="{% url 'liquidacion:exportar_word' liquidacion.id %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-file-word me-2"></i>Descargar Word
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

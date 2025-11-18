@@ -1,0 +1,636 @@
+{# produccion/templates/produccion/liquidacion/liquidacion_form.html #}
+{% extends "produccion/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    {% if es_edicion %} Editar Liquidación #{{ liquidacion.id }} {% else %} Nueva Liquidación {% endif %}
+  </div>
+  <div class="card-body">
+    <form id="liquidacion-form" method="post" novalidate>
+      {% csrf_token %}
+      <div class="row">
+        <div class="col-md-6">
+          <label>Cliente</label>
+          <!-- Select visible (Select2) -->
+          <select id="id_cliente_search_select2" class="form-control"></select>
+          <!-- Campo oculto que Django guarda -->
+          {{ form.cliente_id }}
+        </div>
+        <div class="col-md-3">
+          <label>Fecha</label>
+          {{ form.fecha }}
+        </div>
+        <div class="col-md-3">
+          <label>Referencia <small class="text-muted">(Automático)</small></label>
+          <input type="text" name="referencia" id="id_referencia" class="form-control bg-light" readonly>
+        </div>
+      </div>
+
+      <hr>
+
+      <!-- AQUI ESTA BIEN  -->
+      <div class="mb-3">
+        <label for="id_consignacion_select" class="form-label">Consignación</label>
+        <select id="id_consignacion_select" class="form-control"></select>
+    </div>
+      <h5>Detalle de productos</h5>
+      
+      <!-- Tabla editable estilo Excel -->
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover table-sm" id="productos-table">
+          <thead class="table-primary">
+            <tr>
+              <th style="width: 5%;">#</th>
+              <th style="width: 25%;">Producto</th>
+              <th style="width: 10%;">Consignado</th>
+              <th style="width: 10%;">Ya Vendido</th>
+              <th style="width: 10%;">Ya Devuelto</th>
+              <th style="width: 10%;" class="bg-warning">Pendiente</th>
+              <th style="width: 10%;" class="bg-success text-white">Devolver</th>
+              <th style="width: 10%;" class="bg-info text-white">Vender</th>
+              <th style="width: 10%;">Precio Unit.</th>
+              <th style="width: 10%;" class="bg-dark text-white">Total $</th>
+            </tr>
+          </thead>
+          <tbody id="formset-container">
+            {{ formset.management_form }}
+            <!-- Los productos se cargarán aquí dinámicamente -->
+            <tr id="empty-row">
+              <td colspan="10" class="text-center text-muted">
+                <i class="fas fa-arrow-up"></i> Selecciona un cliente y una consignación para cargar los productos
+              </td>
+            </tr>
+          </tbody>
+          <tfoot class="table-secondary">
+            <tr>
+              <td colspan="9" class="text-end"><strong>TOTAL LIQUIDACIÓN:</strong></td>
+              <td><strong><span id="total-consignacion">$0.00</span></strong></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- plantilla oculta para new rows -->
+      <div id="empty-form" style="display:none;">
+        <div class="row gx-2 align-items-center formset-row mb-2" id="form-__prefix__">
+          <div class="col-md-5">
+            <label>Producto</label>
+            {{ formset.empty_form.producto_id }}
+            <select id="id_detalles-__prefix__-producto_search" class="form-control producto-search"></select>
+          </div>
+          <div class="col-md-2">{{ formset.empty_form.devolucion }}</div>
+          <div class="col-md-2">{{ formset.empty_form.venta }}</div>
+          <div class="col-md-2">{{ formset.empty_form.precio }}</div>
+          <div class="col-md-1 text-center">
+            {% if formset.can_delete %}
+              <label>Eliminar</label>
+              <div class="form-check">{{ formset.empty_form.DELETE }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <hr>
+      <div class="d-flex justify-content-between align-items-center mt-3">
+        <div>
+          <button class="btn btn-primary btn-lg" type="submit">
+            <i class="fas fa-save me-2"></i>
+            {% if liquid %}Actualizar Liquidación{% else %}Guardar Liquidación{% endif %}
+          </button>
+          <a href="{% url 'liquidacion:nueva' %}" class="btn btn-secondary btn-lg ms-2">
+            <i class="fas fa-times me-2"></i>Cancelar
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/select2.min.js' %}"></script>
+<link href="{% static 'css/select2.min.css' %}" rel="stylesheet" />
+
+<style>
+    /* Estilos para tabla tipo Excel */
+    #productos-table {
+        font-size: 0.9rem;
+    }
+    
+    #productos-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: #0d6efd !important;
+        color: white !important;
+        font-weight: bold;
+        text-align: center;
+        vertical-align: middle;
+        padding: 12px 8px;
+        border: 1px solid #dee2e6;
+    }
+    
+    #productos-table tbody tr:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+    
+    #productos-table tbody tr.table-active {
+        background-color: #d1ecf1 !important;
+    }
+    
+    #productos-table input[type="number"] {
+        font-weight: bold;
+        text-align: center;
+    }
+    
+    #productos-table input[type="number"]:focus {
+        background-color: #fff3cd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    .table-responsive {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    /* Resaltar columnas editables */
+    .bg-success.bg-opacity-25:hover {
+        background-color: rgba(25, 135, 84, 0.4) !important;
+    }
+    
+    .bg-info.bg-opacity-25:hover {
+        background-color: rgba(13, 202, 240, 0.4) !important;
+    }
+</style>
+
+<script>
+$(document).ready(function() {
+    console.log("Script liquidacion cargado");
+
+    // 🔢 Cargar el siguiente número de referencia automáticamente (solo en modo creación)
+    {% if not es_edicion %}
+    $.ajax({
+        url: "{% url 'liquidacion:api_siguiente_referencia' %}",
+        dataType: 'json',
+        success: function(data) {
+            if (data.success) {
+                $('#id_referencia').val(data.siguiente_referencia);
+                console.log("✅ Referencia automática cargada:", data.siguiente_referencia);
+            }
+        },
+        error: function(xhr) {
+            console.error("❌ Error al cargar referencia:", xhr.responseText);
+            // Si falla, dejar el campo vacío para que el usuario lo llene
+        }
+    });
+    {% else %}
+    console.log("Modo edición: no se carga referencia automática");
+    {% endif %}
+
+    // inicializar cliente select2 (igual que consignaciones)
+    const clienteSelect = $('#id_cliente_search_select2');
+    clienteSelect.select2({
+        ajax: {
+            url: "{% url 'consignacion:buscar_clientes_api' %}", // reutiliza tu endpoint existente
+            dataType: 'json',
+            delay: 250,
+            data: params => ({ term: params.term }),
+            processResults: data => ({ results: data.results })
+        },
+        placeholder: 'Buscar cliente...',
+        minimumInputLength: 2,
+        width: '100%'
+    }).on('select2:select', function (e) {
+        const id = e.params.data.id;
+        $('input[name="cliente_id"]').val(id);
+    });
+
+    {% if form.initial.cliente_id %}
+      // si estamos editando, setear opción inicial
+      const initOption = new Option("{{ form.initial.cliente_id }}", "{{ form.initial.cliente_id }}", true, true);
+      clienteSelect.append(initOption).trigger('change');
+    {% endif %}
+
+    // ===== helper: actualizar totales =====
+    function calcularTotalFila($row) {
+        const venta = parseFloat($row.find('.venta').val()) || 0;
+        const devol = parseFloat($row.find('.devolucion').val()) || 0;
+        const precio = parseFloat($row.find('.precio').val()) || 0;
+        const saldo = (venta - devol) * precio;
+        $row.find('.saldo').val(saldo.toFixed(2));
+        updateTotal();
+    }
+    function updateTotal() {
+        let total = 0;
+        // Buscar tanto .formset-row (modo creación) como .producto-row (modo edición)
+        $('.formset-row, .producto-row').each(function() {
+            const vendida = parseFloat($(this).find('.cantidad-vendida').val()) || 0;
+            // Buscar precio en campos ocultos (modo edición) o en inputs normales (modo creación)
+            let precio = parseFloat($(this).find('input[name$="_precio"]').val()) || 0;
+            if (precio === 0) {
+                precio = parseFloat($(this).find('input[name$="-precio"]').val()) || 0;
+            }
+            const lineaTotal = vendida * precio;
+            total += lineaTotal;
+            console.log('  Línea:', vendida, 'x', precio, '=', lineaTotal.toFixed(2));
+        });
+        $('#total-consignacion').text('$' + total.toFixed(2));
+        console.log('💰 Total actualizado:', total.toFixed(2));
+    }
+
+    // ===== Select2 productos - función reutilizable =====
+    function initSelect2Producto($select) {
+        if (!$select || !$select.length) return;
+        if ($select.hasClass('select2-hidden-accessible')) {
+            // si ya tiene select2, destruimos para reinit (evita duplicados)
+            try { $select.select2('destroy'); } catch(e) {}
+        }
+        $select.select2({
+            ajax: {
+                url: "{% url 'liquidacion:buscar_productos_api' %}",
+                dataType: 'json',
+                delay: 250,
+                data: params => ({ term: params.term }),
+                processResults: data => ({ results: data.results })
+            },
+            placeholder: 'Buscar producto...',
+            minimumInputLength: 2,
+            width: '100%'
+        }).on('select2:select', function(e) {
+            const data = e.params.data;
+            const $row = $(this).closest('.formset-row');
+            // asignar al campo oculto producto_id
+            $row.find('input[name$="-producto_id"]').val(data.id);
+            // setear precio y existencia si vienen
+            if (data.precio !== undefined) $row.find('input[name$="-precio"]').val(data.precio);
+            // recalcular
+            calcularTotalFila($row);
+        });
+    }
+
+    // inicializar todos los selects existentes
+    $('select.producto-search').each(function() {
+        initSelect2Producto($(this));
+    });
+
+    // Añadir nuevo formulario dinámicamente
+    $('#add-form').click(function(e) {
+        e.preventDefault();
+        const totalForms = $('#id_detalles-TOTAL_FORMS');
+        const index = parseInt(totalForms.val());
+        const html = $('#empty-form').html().replace(/__prefix__/g, index);
+        const $new = $(html).appendTo('#formset-container');
+        totalForms.val(index + 1);
+
+        // inicializar select2 del nuevo
+        setTimeout(() => {
+            initSelect2Producto($new.find('select.producto-search'));
+        }, 50);
+    });
+
+    // eventos para recalculo
+    $('#formset-container').on('input change', '.venta, .devolucion, .precio', function() {
+        const $row = $(this).closest('.formset-row');
+        calcularTotalFila($row);
+    });
+
+    // sincronizar antes de enviar
+    $('#liquidacion-form').on('submit', function() {
+        const clientVal = $('#id_cliente_search_select2').val();
+        if (clientVal) $('input[name="cliente_id"]').val(clientVal);
+
+        // sincronizar cada producto visible -> hidden
+        $('.formset-row').each(function() {
+            const visible = $(this).find('.producto-search');
+            const hidden = $(this).find('input[name$="-producto_id"]');
+            if (visible.length && hidden.length) {
+                const v = visible.val();
+                if (v) hidden.val(v);
+            }
+        });
+    });
+    //aqui esta bien 
+
+    // ==========================
+    // 🎯 FUNCIONALIDAD 1: Cuando seleccionas un cliente, cargar sus consignaciones pendientes
+    // ==========================
+    $('#id_cliente_search_select2').on('select2:select', function (e) {
+        const clienteId = e.params.data.id;
+        console.log("🧾 Cliente seleccionado:", clienteId);
+        $('input[name="cliente_id"]').val(clienteId);
+
+        // Limpiar consignación y productos
+        const $consignacionSelect = $('#id_consignacion_select');
+        $consignacionSelect.empty().trigger('change');
+        $('#formset-container').empty();
+        updateTotal();
+
+        // Cargar consignaciones pendientes del cliente
+        $.ajax({
+            url: "{% url 'liquidacion:api_consignaciones_por_cliente' %}",
+            data: { cliente_id: clienteId },
+            dataType: 'json',
+            success: function(data) {
+                console.log("📋 Consignaciones encontradas:", data.results.length);
+                
+                if (data.results.length === 0) {
+                    alert('Este cliente no tiene consignaciones pendientes de liquidar.');
+                    return;
+                }
+
+                // Inicializar Select2 con las consignaciones
+                $consignacionSelect.select2({
+                    placeholder: "Seleccione una consignación...",
+                    data: data.results.map(item => ({
+                        id: item.id,
+                        text: `#${item.referencia} | ${item.fecha} | Pendiente: $${item.total_pendiente.toFixed(2)}`
+                    })),
+                    width: '100%'
+                });
+            },
+            error: function(xhr) {
+                console.error("❌ Error al cargar consignaciones:", xhr.responseText);
+                alert('Error al cargar las consignaciones del cliente.');
+            }
+        });
+    });
+
+    // ==========================
+    // 📦 FUNCIONALIDAD 2 y 3: Al seleccionar consignación → cargar productos pendientes con saldos
+    // ==========================
+    $('#id_consignacion_select').on('select2:select', function (e) {
+        const consignacionId = e.params.data.id;
+        console.log("📦 Consignación seleccionada:", consignacionId);
+
+        $.ajax({
+            url: "{% url 'liquidacion:api_detalle_consignacion_pendiente' %}",
+            data: { consignacion_id: consignacionId },
+            dataType: 'json',
+            success: function(response) {
+                console.log("✅ Detalle recibido:", response);
+                
+                const $container = $('#formset-container');
+                
+                // Guardar el management form antes de limpiar
+                let managementFormHtml = $container.find('input[name$="-TOTAL_FORMS"]').parent().html();
+                
+                // Limpiar el contenedor
+                $container.empty();
+                
+                // Restaurar management form o crear uno nuevo
+                if (managementFormHtml) {
+                    $container.append(`<div>${managementFormHtml}</div>`);
+                } else {
+                    $container.append(`
+                        <div>
+                            <input type="hidden" name="detalles-TOTAL_FORMS" id="id_detalles-TOTAL_FORMS" value="0">
+                            <input type="hidden" name="detalles-INITIAL_FORMS" id="id_detalles-INITIAL_FORMS" value="0">
+                            <input type="hidden" name="detalles-MIN_NUM_FORMS" id="id_detalles-MIN_NUM_FORMS" value="0">
+                            <input type="hidden" name="detalles-MAX_NUM_FORMS" id="id_detalles-MAX_NUM_FORMS" value="1000">
+                        </div>
+                    `);
+                }
+
+                const totalForms = $('#id_detalles-TOTAL_FORMS');
+                let formIndex = 0;
+
+                // Ocultar fila vacía
+                $('#empty-row').hide();
+                
+                response.detalles.forEach((det, index) => {
+                    const rowHtml = `
+                        <tr class="formset-row" data-consignacion-detalle-id="${det.consignacion_detalle_id}">
+                            <!-- Campos ocultos -->
+                            <input type="hidden" name="detalles-${index}-consignacion_detalle_id" value="${det.consignacion_detalle_id}">
+                            <input type="hidden" name="detalles-${index}-producto_id" value="${det.producto_id}">
+                            <input type="hidden" name="detalles-${index}-cantidad_consignada" value="${det.cantidad_consignada}">
+                            <input type="hidden" name="detalles-${index}-precio" value="${det.precio}">
+                            
+                            <!-- # -->
+                            <td class="text-center align-middle">${index + 1}</td>
+                            
+                            <!-- Producto -->
+                            <td class="align-middle">
+                                <small><strong>${det.producto_codigo}</strong></small><br>
+                                <small class="text-muted">${det.producto_nombre}</small>
+                            </td>
+                            
+                            <!-- Consignado -->
+                            <td class="text-center align-middle bg-light">
+                                <strong>${det.cantidad_consignada.toFixed(2)}</strong>
+                            </td>
+                            
+                            <!-- Ya Vendido -->
+                            <td class="text-center align-middle bg-light">
+                                ${det.cantidad_vendida.toFixed(2)}
+                            </td>
+                            
+                            <!-- Ya Devuelto -->
+                            <td class="text-center align-middle bg-light">
+                                ${det.cantidad_devuelta.toFixed(2)}
+                            </td>
+                            
+                            <!-- Pendiente -->
+                            <td class="text-center align-middle bg-warning">
+                                <strong class="pendiente-value">${det.cantidad_pendiente.toFixed(2)}</strong>
+                            </td>
+                            
+                            <!-- Devolver (editable) -->
+                            <td class="text-center align-middle bg-success bg-opacity-25">
+                                <input type="number" 
+                                       name="detalles-${index}-cantidad_devuelta" 
+                                       class="form-control form-control-sm text-center cantidad-devuelta" 
+                                       value="0" 
+                                       min="0" 
+                                       max="${det.cantidad_pendiente}" 
+                                       step="0.01"
+                                       style="border: 2px solid #198754;">
+                            </td>
+                            
+                            <!-- Vender (editable) -->
+                            <td class="text-center align-middle bg-info bg-opacity-25">
+                                <input type="number" 
+                                       name="detalles-${index}-cantidad_vendida" 
+                                       class="form-control form-control-sm text-center cantidad-vendida" 
+                                       value="0" 
+                                       min="0" 
+                                       max="${det.cantidad_pendiente}" 
+                                       step="0.01"
+                                       style="border: 2px solid #0dcaf0;">
+                            </td>
+                            
+                            <!-- Precio -->
+                            <td class="text-end align-middle">
+                                $${det.precio.toFixed(2)}
+                            </td>
+                            
+                            <!-- Total $ -->
+                            <td class="text-end align-middle bg-dark bg-opacity-10">
+                                <strong class="total-linea">$0.00</strong>
+                            </td>
+                        </tr>`;
+                    $container.append(rowHtml);
+                    formIndex++;
+                });
+
+                // Actualizar TOTAL_FORMS
+                totalForms.val(formIndex);
+                
+                // Agregar eventos para cálculo automático en tiempo real
+                $('.cantidad-vendida, .cantidad-devuelta').on('input change', function() {
+                    const $row = $(this).closest('tr.formset-row');
+                    const vendida = parseFloat($row.find('.cantidad-vendida').val()) || 0;
+                    const devuelta = parseFloat($row.find('.cantidad-devuelta').val()) || 0;
+                    const precio = parseFloat($row.find('input[name$="-precio"]').val()) || 0;
+                    const pendiente = parseFloat($row.find('.pendiente-value').text()) || 0;
+                    
+                    // Validar que no exceda el pendiente
+                    if (vendida + devuelta > pendiente) {
+                        alert(`⚠️ La suma de venta (${vendida}) y devolución (${devuelta}) no puede exceder la cantidad pendiente (${pendiente}).`);
+                        $(this).val(0);
+                        $(this).focus();
+                        return;
+                    }
+                    
+                    // Calcular total de la línea (solo ventas generan valor)
+                    const totalLinea = vendida * precio;
+                    $row.find('.total-linea').text('$' + totalLinea.toFixed(2));
+                    
+                    // Resaltar la fila si tiene cambios
+                    if (vendida > 0 || devuelta > 0) {
+                        $row.addClass('table-active');
+                    } else {
+                        $row.removeClass('table-active');
+                    }
+                    
+                    // Actualizar total general
+                    updateTotal();
+                });
+                
+                // Permitir navegación con Tab entre celdas (estilo Excel)
+                $('.cantidad-vendida, .cantidad-devuelta').on('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const $nextInput = $(this).closest('tr').next('tr').find('.cantidad-devuelta, .cantidad-vendida').first();
+                        if ($nextInput.length) {
+                            $nextInput.focus().select();
+                        }
+                    }
+                });
+
+                console.log("✅ Detalle cargado:", response.detalles.length, "productos pendientes");
+                updateTotal();
+            },
+            error: function(xhr) {
+                console.error("❌ Error al cargar detalle:", xhr.responseText);
+                alert('Error al cargar el detalle de la consignación.');
+            }
+        });
+    });
+
+    //aqui esta bien
+    // ejecutar una vez
+    updateTotal();
+
+    // ========================================
+    // MODO EDICIÓN: Cargar datos existentes
+    // ========================================
+    {% if es_edicion and liquidacion %}
+    console.log("🔄 Modo EDICIÓN activado - Liquidación #{{ liquidacion.id }}");
+    
+    // Esperar a que todo esté listo
+    setTimeout(function() {
+        // Cargar datos del cliente
+        const clienteId = '{{ liquidacion.cliente_id }}';
+        $('#id_cliente_id').val(clienteId);
+        console.log("Cliente ID cargado:", clienteId);
+        
+        // Inicializar Select2 con el cliente actual
+        const clienteOption = new Option(clienteId, clienteId, true, true);
+        $('#id_cliente_search_select2').append(clienteOption).trigger('change');
+        
+        // Cargar fecha - buscar el input de fecha
+        const fecha = '{{ liquidacion.fecha|date:"Y-m-d" }}';
+        const fechaInput = $('input[type="date"]').first();
+        if (fechaInput.length) {
+            fechaInput.val(fecha);
+            console.log("Fecha cargada:", fecha);
+        } else {
+            console.warn("⚠️ No se encontró el input de fecha");
+        }
+        
+        // Cargar referencia
+        const referencia = '{{ liquidacion.referencia }}';
+        $('#id_referencia').val(referencia);
+        console.log("Referencia cargada:", referencia);
+    
+    // Cargar consignación si existe
+    {% if liquidacion.consignacion_id %}
+    const consignacionId = '{{ liquidacion.consignacion_id }}';
+    $('input[name="consignacion_id"]').val(consignacionId);
+    console.log("Consignación ID cargada:", consignacionId);
+    {% endif %}
+    
+    // Cargar productos existentes
+    {% if detalles_json %}
+    try {
+        console.log("🔍 JSON recibido:", '{{ detalles_json|escapejs }}');
+        const detallesExistentes = JSON.parse('{{ detalles_json|escapejs }}');
+        console.log("📦 Cargando", detallesExistentes.length, "productos existentes");
+        console.log("📋 Detalles:", detallesExistentes);
+        
+        // Ocultar mensaje de "Selecciona un cliente..."
+        $('#empty-row').hide();
+        
+        detallesExistentes.forEach((detalle, index) => {
+            const html = `
+                <tr class="producto-row">
+                    <td class="text-center">${index + 1}</td>
+                    <td>
+                        ${detalle.producto_nombre}
+                        <input type="hidden" name="detalle_${index}_consignacion_detalle_id" value="${detalle.consignacion_detalle_id}">
+                        <input type="hidden" name="detalle_${index}_producto_id" value="${detalle.producto_id}">
+                        <input type="hidden" name="detalle_${index}_cantidad_consignada" value="${detalle.cantidad_consignada}">
+                        <input type="hidden" name="detalle_${index}_precio" value="${detalle.precio}">
+                    </td>
+                    <td class="text-center">${detalle.cantidad_consignada.toFixed(2)}</td>
+                    <td class="text-center">${detalle.cantidad_vendida.toFixed(2)}</td>
+                    <td class="text-center">${detalle.cantidad_devuelta.toFixed(2)}</td>
+                    <td class="text-center">
+                        <span class="badge bg-warning text-dark">${detalle.cantidad_pendiente.toFixed(2)}</span>
+                    </td>
+                    <td class="text-center">
+                        <input type="number" name="detalle_${index}_devolver" 
+                               class="form-control form-control-sm cantidad-devuelta" 
+                               value="${detalle.cantidad_devuelta}" 
+                               min="0" max="${detalle.cantidad_consignada}" step="0.01">
+                    </td>
+                    <td class="text-center">
+                        <input type="number" name="detalle_${index}_vender" 
+                               class="form-control form-control-sm cantidad-vendida" 
+                               value="${detalle.cantidad_vendida}" 
+                               min="0" max="${detalle.cantidad_consignada}" step="0.01">
+                    </td>
+                    <td class="text-end">$${detalle.precio.toFixed(2)}</td>
+                    <td class="text-end total-linea"><strong>$${detalle.total_linea.toFixed(2)}</strong></td>
+                </tr>
+            `;
+            $('#formset-container').append(html);
+        });
+        
+        // Recalcular totales
+        updateTotal();
+        console.log("✅ Productos cargados en modo edición");
+    } catch (error) {
+        console.error("❌ Error al cargar productos:", error);
+    }
+    {% endif %}
+    
+    }, 500); // Fin del setTimeout - esperar 500ms para que todo esté listo
+    {% endif %}
+});
+</script>
+{% endblock %}

@@ -9,8 +9,8 @@ de forma que no se pierda el hilo en cada sesión de trabajo.
 
 - [x] 1. Definir estructura modular de archivos
 - [x] 2. Ajustar modelos `Consignacion` y `ConsignacionDetalle`
-- [ ] 3. Crear URLs y Views base (crear, listar)
-- [ ] 4. Crear plantilla `consignacion_list.html`
+- [x] 3. Crear URLs y Views base (crear, listar)
+- [x] 4. Crear plantilla `consignacion_list.html`
 - [ ] 5. Crear pantalla de **liquidación**
 - [ ] 6. Crear pantalla de **devolución**
 - [ ] 7. Conexión de lectura con sistema de facturación externo

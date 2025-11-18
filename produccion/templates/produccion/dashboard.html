@@ -3,69 +3,365 @@
 {% block title %}Dashboard de Producción{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1>Dashboard de Producción</h1>
-    </div>
-    <div class="card">
-        <div class="card-body">
-            <table class="table table-hover table-bordered text-center mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width: 10%;">OP #</th>
-                        <th style="width: 30%;">Producto</th>
-                        <th style="width: 15%;">Estado</th>
-                        <th style="width: 15%;">Corte Bobina</th>
-                        <th style="width: 15%;">Requisición</th>
-                        <th style="width: 15%;">Control Proceso</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for orden in ordenes %}
-                    <tr>
-                        <td><strong><a href="{% url 'produccion:detalle_orden' orden.id %}">{{ orden.numero_orden }}</a></strong></td>
-                        <td class="text-start">{{ orden.producto_a_elaborar }}</td>
-                        <td>
-                            <span class="badge 
-                                {% if orden.status == 'PENDIENTE' %}bg-secondary
-                                {% elif orden.status == 'EN_PROCESO' %}bg-primary
-                                {% elif orden.status == 'COMPLETADO' %}bg-success
-                                {% elif orden.status == 'DETENIDO' %}bg-danger
-                                {% endif %}">
-                                {{ orden.get_status_display }}
-                            </span>
-                        </td>
+<style>
+.kpi-card {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+.kpi-icon {
+    font-size: 3rem;
+    opacity: 0.2;
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.kpi-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+.kpi-label {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.8;
+}
+.kpi-trend {
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+}
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+.section-title {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 3px solid #3498db;
+}
+</style>
 
-                        <td>
-                            {% for corte in orden.cortes.all %}
-                                <a href="{% url 'produccion:detalle_corte' corte.id %}">{{ corte.numero_reporte }}</a>{% if not forloop.last %}, {% endif %}
-                            {% empty %}
-                                <span class="text-muted">❌ Pendiente</span>
-                            {% endfor %}
-                        </td>
-
-                        <td>
-                            {% for req in orden.requisiciones.all %}
-                                <a href="{% url 'produccion:detalle_requisicion' req.id %}">{{ req.numero_requisicion }}</a>{% if not forloop.last %}, {% endif %}
-                            {% empty %}
-                                <span class="text-muted">❌ Pendiente</span>
-                            {% endfor %}
-                        </td>
-
-                        <td>
-                            {% for control in orden.controles.all %}
-                                <a href="{% url 'produccion:detalle_control' control.id %}">{{ control.id }}</a>{% if not forloop.last %}, {% endif %}
-                            {% empty %}
-                                <span class="text-muted">❌ Pendiente</span>
-                            {% endfor %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6">No hay órdenes de producción para mostrar.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="container-fluid">
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">📊 Dashboard de Producción</h1>
+            <p class="text-muted mb-0">Resumen ejecutivo y estadísticas en tiempo real</p>
+        </div>
+        <div>
+            <button class="btn btn-outline-primary btn-sm me-2">
+                <i class="bi bi-calendar3"></i> Hoy
+            </button>
+            <button class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-download"></i> Exportar
+            </button>
         </div>
     </div>
+
+    <!-- KPIs PRINCIPALES -->
+    <div class="row g-4 mb-4">
+        <!-- Órdenes Activas -->
+        <div class="col-md-3">
+            <div class="card kpi-card bg-primary text-white">
+                <div class="card-body position-relative">
+                    <i class="bi bi-clipboard-check kpi-icon"></i>
+                    <div class="kpi-label">Órdenes Activas</div>
+                    <h2 class="kpi-value">{{ total_ordenes }}</h2>
+                    <div class="kpi-trend">
+                        <i class="bi bi-arrow-up"></i> +{{ ordenes_hoy }} hoy
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Consignaciones Activas -->
+        <div class="col-md-3">
+            <div class="card kpi-card bg-success text-white">
+                <div class="card-body position-relative">
+                    <i class="bi bi-truck kpi-icon"></i>
+                    <div class="kpi-label">Consignaciones</div>
+                    <h2 class="kpi-value">{{ total_consignaciones }}</h2>
+                    <div class="kpi-trend">
+                        <i class="bi bi-arrow-down"></i> {{ consignaciones_mes }} este mes
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liquidaciones Pendientes -->
+        <div class="col-md-3">
+            <div class="card kpi-card bg-warning text-dark">
+                <div class="card-body position-relative">
+                    <i class="bi bi-cash-coin kpi-icon"></i>
+                    <div class="kpi-label">Liquidaciones</div>
+                    <h2 class="kpi-value">{{ total_liquidaciones }}</h2>
+                    <div class="kpi-trend">
+                        <i class="bi bi-currency-dollar"></i> ${{ monto_pendiente|floatformat:2 }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Productos en Stock -->
+        <div class="col-md-3">
+            <div class="card kpi-card bg-info text-white">
+                <div class="card-body position-relative">
+                    <i class="bi bi-box-seam kpi-icon"></i>
+                    <div class="kpi-label">Productos</div>
+                    <h2 class="kpi-value">{{ total_productos }}</h2>
+                    <div class="kpi-trend">
+                        <i class="bi bi-exclamation-triangle"></i> {{ productos_bajo_stock }} bajo stock
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRÁFICOS -->
+    <div class="row g-4 mb-4">
+        <!-- Gráfico de Estado de Órdenes -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="section-title">Estado de Órdenes de Producción</h5>
+                    <div class="chart-container">
+                        <canvas id="ordenesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Consignaciones por Mes -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="section-title">Consignaciones Últimos 6 Meses</h5>
+                    <div class="chart-container">
+                        <canvas id="consignacionesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRÁFICO ADICIONAL: TIEMPO PROMEDIO DE PRODUCCIÓN -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="section-title">⏱️ Tiempo Promedio de Producción por Estado</h5>
+                    <div class="chart-container">
+                        <canvas id="tiempoProduccionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLAS RESUMIDAS -->
+    <div class="row g-4">
+        <!-- Órdenes Pendientes -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-list-check"></i> Órdenes Pendientes (Top 5)</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>OP #</th>
+                                <th>Producto</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for orden in ordenes|slice:":5" %}
+                            <tr>
+                                <td><a href="{% url 'produccion:detalle_orden' orden.id %}">{{ orden.numero_orden }}</a></td>
+                                <td>{{ orden.producto_a_elaborar|truncatewords:5 }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if orden.status == 'PENDIENTE' %}bg-secondary
+                                        {% elif orden.status == 'EN_PROCESO' %}bg-primary
+                                        {% elif orden.status == 'COMPLETADO' %}bg-success
+                                        {% elif orden.status == 'DETENIDO' %}bg-danger
+                                        {% endif %}">
+                                        {{ orden.get_status_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">No hay órdenes pendientes</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="{% url 'produccion:lista_ordenes' %}" class="btn btn-sm btn-outline-primary">Ver Todas</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertas y Notificaciones -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="bi bi-bell"></i> Alertas y Notificaciones</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-exclamation-triangle text-danger"></i>
+                                <strong>{{ ordenes_vencidas }}</strong> órdenes vencidas
+                            </div>
+                            <span class="badge bg-danger rounded-pill">{{ ordenes_vencidas }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-box text-warning"></i>
+                                <strong>{{ productos_bajo_stock }}</strong> productos con stock bajo
+                            </div>
+                            <span class="badge bg-warning rounded-pill">{{ productos_bajo_stock }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-check-circle text-success"></i>
+                                <strong>{{ ordenes_completadas_hoy }}</strong> órdenes completadas hoy
+                            </div>
+                            <span class="badge bg-success rounded-pill">{{ ordenes_completadas_hoy }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-currency-dollar text-info"></i>
+                                Liquidaciones pendientes
+                            </div>
+                            <span class="badge bg-info rounded-pill">${{ monto_pendiente|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Gráfico de Estado de Órdenes (Dona)
+const ctxOrdenes = document.getElementById('ordenesChart').getContext('2d');
+new Chart(ctxOrdenes, {
+    type: 'doughnut',
+    data: {
+        labels: ['Pendiente', 'En Proceso', 'Completado', 'Detenido'],
+        datasets: [{
+            data: [{{ ordenes_pendientes }}, {{ ordenes_proceso }}, {{ ordenes_completadas }}, {{ ordenes_detenidas }}],
+            backgroundColor: [
+                'rgba(108, 117, 125, 0.8)',
+                'rgba(13, 110, 253, 0.8)',
+                'rgba(25, 135, 84, 0.8)',
+                'rgba(220, 53, 69, 0.8)'
+            ],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Gráfico de Consignaciones (Líneas)
+const ctxConsignaciones = document.getElementById('consignacionesChart').getContext('2d');
+new Chart(ctxConsignaciones, {
+    type: 'line',
+    data: {
+        labels: {{ meses_labels|safe }},
+        datasets: [{
+            label: 'Consignaciones',
+            data: {{ consignaciones_data|safe }},
+            borderColor: 'rgba(25, 135, 84, 1)',
+            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Gráfico de Tiempo Promedio de Producción
+const ctxTiempo = document.getElementById('tiempoProduccionChart').getContext('2d');
+new Chart(ctxTiempo, {
+    type: 'bar',
+    data: {
+        labels: ['Pendiente', 'En Proceso', 'Completado', 'Detenido'],
+        datasets: [{
+            label: 'Días Promedio',
+            data: {{ tiempo_promedio_data|safe }},
+            backgroundColor: [
+                'rgba(108, 117, 125, 0.7)',
+                'rgba(13, 110, 253, 0.7)',
+                'rgba(25, 135, 84, 0.7)',
+                'rgba(220, 53, 69, 0.7)'
+            ],
+            borderColor: [
+                'rgba(108, 117, 125, 1)',
+                'rgba(13, 110, 253, 1)',
+                'rgba(25, 135, 84, 1)',
+                'rgba(220, 53, 69, 1)'
+            ],
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Días'
+                }
+            }
+        }
+    }
+});
+</script>
 {% endblock %}

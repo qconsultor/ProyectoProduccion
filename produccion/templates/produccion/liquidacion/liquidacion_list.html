@@ -1,0 +1,188 @@
+{% extends "produccion/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h2><i class="fas fa-file-invoice-dollar me-2"></i>Liquidaciones de Consignaciones</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'liquidacion:nueva' %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus me-2"></i>Nueva Liquidación
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" id="filtro-form" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Cliente ID</label>
+                    <select id="cliente_filtro_select" name="cliente_id" class="form-control">
+                        {% if cliente_id %}
+                        <option value="{{ cliente_id }}" selected>{{ cliente_id }}</option>
+                        {% endif %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Fecha Desde</label>
+                    <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Fecha Hasta</label>
+                    <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-info me-2">
+                        <i class="fas fa-search me-1"></i>Filtrar
+                    </button>
+                    <a href="{% url 'liquidacion:listar' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i>Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Liquidaciones -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Listado de Liquidaciones ({{ liquidaciones.count }})</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered" id="tabla-liquidaciones">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="text-center">#</th>
+                            <th>Cliente</th>
+                            <th class="text-center">Consignación</th>
+                            <th class="text-center">Fecha</th>
+                            <th class="text-center">Referencia</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for liq in liquidaciones %}
+                        <tr>
+                            <td class="text-center"><strong>{{ liq.id }}</strong></td>
+                            <td>{{ liq.cliente_id }}</td>
+                            <td class="text-center">{{ liq.consignacion_id|default:"-" }}</td>
+                            <td class="text-center">{{ liq.fecha|date:"d/m/Y" }}</td>
+                            <td class="text-center"><span class="badge bg-info">{{ liq.referencia }}</span></td>
+                            <td class="text-end"><strong>${{ liq.total|floatformat:2 }}</strong></td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'liquidacion:ver' liq.id %}" class="btn btn-sm btn-info" title="Ver Detalle">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'liquidacion:editar' liq.id %}" class="btn btn-sm btn-warning" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'liquidacion:exportar_pdf' liq.id %}" class="btn btn-sm btn-danger" title="Exportar PDF" target="_blank">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
+                                    <a href="{% url 'liquidacion:exportar_excel' liq.id %}" class="btn btn-sm btn-success" title="Exportar Excel">
+                                        <i class="fas fa-file-excel"></i>
+                                    </a>
+                                    <a href="{% url 'liquidacion:exportar_word' liq.id %}" class="btn btn-sm btn-primary" title="Exportar Word">
+                                        <i class="fas fa-file-word"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">
+                                <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                No hay liquidaciones registradas.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-secondary">
+                        <tr>
+                            <td colspan="5" class="text-end"><strong>TOTAL GENERAL:</strong></td>
+                            <td class="text-end"><strong>${{ total_general|floatformat:2 }}</strong></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Inicializar Select2 para el filtro de clientes
+    console.log("Inicializando Select2 para filtro de clientes...");
+    
+    $('#cliente_filtro_select').select2({
+        theme: 'bootstrap-5',
+        ajax: {
+            url: "{% url 'consignacion:buscar_clientes_api' %}",
+            dataType: 'json',
+            delay: 250,
+            data: function(params) {
+                return {
+                    term: params.term || ''
+                };
+            },
+            processResults: function(data) {
+                console.log("Resultados de búsqueda:", data);
+                return {
+                    results: data.results
+                };
+            },
+            cache: true
+        },
+        placeholder: 'Buscar cliente por código o nombre...',
+        allowClear: true,
+        minimumInputLength: 0,
+        width: '100%',
+        language: {
+            inputTooShort: function() {
+                return 'Escribe para buscar...';
+            },
+            noResults: function() {
+                return 'No se encontraron clientes';
+            },
+            searching: function() {
+                return 'Buscando...';
+            },
+            loadingMore: function() {
+                return 'Cargando más resultados...';
+            }
+        }
+    });
+    
+    console.log("✅ Select2 inicializado correctamente");
+
+    // DataTables para búsqueda y paginación
+    if ($.fn.DataTable) {
+        $('#tabla-liquidaciones').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+            },
+            order: [[0, 'desc']],
+            pageLength: 25
+        });
+    }
+});
+</script>
+{% endblock %}

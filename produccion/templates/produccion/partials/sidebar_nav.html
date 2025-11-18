@@ -1,75 +1,146 @@
+<style>
+.sidebar-section-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #6c757d;
+    padding: 0.75rem 1rem 0.25rem;
+    margin-top: 0.5rem;
+    letter-spacing: 0.5px;
+}
+.sidebar-divider {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 0.5rem 0;
+}
+.nav-link {
+    transition: all 0.2s ease;
+    border-radius: 0.25rem;
+    margin: 0.1rem 0.5rem;
+}
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateX(3px);
+}
+.nav-link.active {
+    background-color: rgba(13, 110, 253, 0.2);
+    border-left: 3px solid #0d6efd;
+}
+.nav-link i {
+    width: 20px;
+    text-align: center;
+    margin-right: 0.5rem;
+}
+</style>
+
 <ul class="nav flex-column">
+    <!-- DASHBOARD -->
     <li class="nav-item">
         <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'produccion:dashboard' %}">
-            <i class="bi bi-grid-1x2"></i> Dashboard
+            <i class="bi bi-speedometer2"></i> Dashboard
         </a>
     </li>
+
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">📋 Producción</div>
+
+    <!-- CORTES DE BOBINA -->
     <li class="nav-item">
         <a class="nav-link {% if request.resolver_match.url_name == 'crear_corte' %}active{% endif %}" href="{% url 'produccion:crear_corte' %}">
-            <i class="bi bi-scissors"></i> Nuevo Corte de Bobina
-        </a>
-    </li>
-    <li class="nav-item ps-4">
-        <a class="nav-link {% if request.resolver_match.url_name == 'lista_cortes' %}active{% endif %}" href="{% url 'produccion:lista_cortes' %}">
-            Ver Reportes de Corte
+            <i class="bi bi-scissors"></i> Corte de Bobina
         </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link {% if 'orden' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'produccion:lista_ordenes' %}">
-            <i class="bi bi-list-check"></i> Órdenes de Producción
+        <a class="nav-link {% if request.resolver_match.url_name == 'lista_cortes' %}active{% endif %}" href="{% url 'produccion:lista_cortes' %}">
+            <i class="bi bi-list-ul"></i> Reportes de Corte
         </a>
     </li>
+
+    <!-- ÓRDENES -->
+    <li class="nav-item">
+        <a class="nav-link {% if 'orden' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'produccion:lista_ordenes' %}">
+            <i class="bi bi-clipboard-check"></i> Órdenes de Producción
+        </a>
+    </li>
+
+    <!-- REQUISICIONES -->
     <li class="nav-item">
         <a class="nav-link {% if 'requisicion' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'produccion:lista_requisiciones' %}">
             <i class="bi bi-journal-text"></i> Requisiciones
         </a>
     </li>
+
+    <!-- CONTROLES -->
     <li class="nav-item">
         <a class="nav-link {% if 'control' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'produccion:lista_controles' %}">
             <i class="bi bi-sliders"></i> Controles de Proceso
         </a>
     </li>
+
+    <!-- REPORTES DIARIOS -->
     <li class="nav-item">
         <a class="nav-link {% if 'reporte-diario' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'produccion:lista_reportes_diarios' %}">
-            <i class="bi bi-calendar-check"></i> Reportes Diarios
+            <i class="bi bi-calendar-day"></i> Reportes Diarios
         </a>
     </li>
+
+    <!-- NOTAS DE INGRESO -->
     <li class="nav-item">
         <a class="nav-link {% if 'nota-ingreso' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'produccion:lista_notas_ingreso' %}">
             <i class="bi bi-box-arrow-in-down"></i> Notas de Ingreso
         </a>
     </li>
+
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">📦 Inventario</div>
+
+    <!-- GESTIÓN DE PRODUCTOS -->
     <li class="nav-item">
         <a class="nav-link {% if request.resolver_match.url_name in 'lista_productos,crear_producto,editar_producto' %}active{% endif %}" href="{% url 'produccion:lista_productos' %}">
-            <i class="fas fa-dolly-flatbed"></i> Gestión de Productos
+            <i class="bi bi-box-seam"></i> Productos
         </a>
     </li>
-    <li class="nav-item ps-4">
-        <a class="nav-link" href="{% url 'produccion:ingreso_producto' %}">Registrar Ingreso</a>
+    <li class="nav-item">
+        <a class="nav-link {% if 'ingreso_producto' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'produccion:ingreso_producto' %}">
+            <i class="bi bi-plus-circle"></i> Registrar Ingreso
+        </a>
     </li>
-    <li class="nav-item ps-4">
-        <a class="nav-link" href="{% url 'produccion:lista_movimientos' %}">Consultar Movimientos</a>
+    <li class="nav-item">
+        <a class="nav-link {% if 'movimientos' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'produccion:lista_movimientos' %}">
+            <i class="bi bi-arrow-left-right"></i> Movimientos
+        </a>
     </li>
 
-    <!-- =========== MÓDULO DE CONSIGNACIONES AÑADIDO =========== -->
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">🚚 Ventas</div>
+
+    <!-- CONSIGNACIONES -->
     <li class="nav-item">
         <a class="nav-link {% if 'consignacion' in request.resolver_match.url_name or 'cliente' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'produccion:lista_consignaciones' %}">
             <i class="bi bi-truck"></i> Consignaciones
         </a>
     </li>
-    <!-- ======================================================= -->
-    
+
+    <!-- LIQUIDACIONES -->
     <li class="nav-item">
-        <a class="nav-link"><i class="bi bi-graph-up"></i> Reportes</a>
-    </li>
-    <li class="nav-item ps-4">
-        <a class="nav-link" href="{% url 'produccion:reporte_kardex' %}">
-            <i class="fas fa-box"></i> Kardex por Producto
+        <a class="nav-link {% if 'liquidacion' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'liquidacion:listar' %}">
+            <i class="bi bi-cash-coin"></i> Liquidaciones
         </a>
     </li>
-    <li class="nav-item ps-4">
-        <a class="nav-link" href="{% url 'produccion:reporte_movimientos' %}">
-            <i class="fas fa-exchange-alt"></i> Movimientos por Fecha
+
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">📊 Reportes</div>
+
+    <!-- KARDEX -->
+    <li class="nav-item">
+        <a class="nav-link {% if 'kardex' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'produccion:reporte_kardex' %}">
+            <i class="bi bi-file-earmark-bar-graph"></i> Kardex por Producto
+        </a>
+    </li>
+
+    <!-- MOVIMIENTOS POR FECHA -->
+    <li class="nav-item">
+        <a class="nav-link {% if 'reporte_movimientos' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'produccion:reporte_movimientos' %}">
+            <i class="bi bi-calendar-range"></i> Movimientos por Fecha
         </a>
     </li>
 </ul>

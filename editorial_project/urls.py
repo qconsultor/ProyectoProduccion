@@ -27,4 +27,5 @@ urlpatterns = [
     # 2. Y muy importante: agrúpalas todas bajo el "apellido" o namespace 'produccion'.
     path('produccion/', include('produccion.urls', namespace='produccion')),
     path('consignaciones/', include('produccion.urls_consignacion')),
+    path('liquidaciones/', include('produccion.urls_liquidacion', namespace='liquidacion')),  # ✅ <--- AÑADÍ ESTA LÍNEA
 ]

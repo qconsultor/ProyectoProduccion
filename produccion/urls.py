@@ -96,8 +96,14 @@ urlpatterns = [
     
     # --- RUTA AÑADIDA PARA LA NUEVA API ---
     path('api/get-producto-detalle-consignacion/', views_consignacion.get_producto_detalle_consignacion_api, name='get_producto_detalle_consignacion_api'),
+    
+    # --- API para Notas de Ingreso ---
+    path('api/buscar-productos-nota-ingreso/', views.buscar_productos_nota_ingreso_api, name='buscar_productos_nota_ingreso_api'),
 
      # Consignaciones — se redirige a urls_consignacion.py
     path('consignaciones/', include('produccion.urls_consignacion')),
+
+    path('liquidacion/', include('produccion.urls_liquidacion')),
+
 ]
 

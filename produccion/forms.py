@@ -7,8 +7,10 @@ from .models import (
     OrdenProduccion, 
     RequisicionEncabezado, 
     ControlProceso, 
-    ReporteDiarioProductoTerminado, 
+    ReporteDiarioProductoTerminado,
+    ReporteDiarioDetalle,
     NotaIngresoProductoTerminado,
+    NotaIngresoDetalle,
     CorteDeBobina, 
     CorteDeBobinaDetalle,
     Producto,
@@ -62,12 +64,118 @@ class ReporteDiarioForm(forms.ModelForm):
     class Meta:
         model = ReporteDiarioProductoTerminado
         fields = '__all__'
+        widgets = {
+            'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'nombre_encargado': forms.TextInput(attrs={'class': 'form-control'}),
+            'turno': forms.TextInput(attrs={'class': 'form-control'}),
+            'elaborado_por': forms.TextInput(attrs={'class': 'form-control'}),
+            'revisado_por': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+class ReporteDiarioDetalleForm(forms.ModelForm):
+    class Meta:
+        model = ReporteDiarioDetalle
+        fields = ['nombre_producto', 'compaginado', 'doblado_libro', 'doblado_portada', 'engrapado', 'empacado']
+        widgets = {
+            'nombre_producto': forms.TextInput(attrs={'class': 'form-control'}),
+            'compaginado': forms.NumberInput(attrs={'class': 'form-control'}),
+            'doblado_libro': forms.NumberInput(attrs={'class': 'form-control'}),
+            'doblado_portada': forms.NumberInput(attrs={'class': 'form-control'}),
+            'engrapado': forms.NumberInput(attrs={'class': 'form-control'}),
+            'empacado': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+
+# Formset para manejar múltiples detalles de reporte diario
+ReporteDiarioDetalleFormSet = forms.inlineformset_factory(
+    ReporteDiarioProductoTerminado,
+    ReporteDiarioDetalle,
+    form=ReporteDiarioDetalleForm,
+    extra=1,
+    can_delete=True
+)
 
 
 class NotaIngresoForm(forms.ModelForm):
     class Meta:
         model = NotaIngresoProductoTerminado
         fields = '__all__'
+        widgets = {
+            'numero_nota': forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly'}),
+            'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'elaborado_por': forms.TextInput(attrs={'class': 'form-control'}),
+            'recibido_por': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Si es una nueva nota (no tiene pk), generar el siguiente número
+        if not self.instance.pk:
+            # Obtener todos los números de nota y encontrar el máximo numérico
+            notas = NotaIngresoProductoTerminado.objects.all().values_list('numero_nota', flat=True)
+            
+            numeros_validos = []
+            for nota in notas:
+                try:
+                    numeros_validos.append(int(nota))
+                except (ValueError, TypeError):
+                    # Ignorar números no numéricos
+                    pass
+            
+            if numeros_validos:
+                siguiente_numero = max(numeros_validos) + 1
+            else:
+                siguiente_numero = 1
+            
+            self.initial['numero_nota'] = str(siguiente_numero)
+
+
+class NotaIngresoDetalleForm(forms.ModelForm):
+    # Campo personalizado para el buscador de productos (no se guarda en BD)
+    producto_search = forms.CharField(
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control producto-search-nota-ingreso'}),
+        label='Buscar Producto'
+    )
+    
+    class Meta:
+        model = NotaIngresoDetalle
+        fields = ['codigo', 'descripcion_producto', 'paquetes', 'unidades', 'observaciones']
+        widgets = {
+            'codigo': forms.HiddenInput(),  # Oculto, se llenará automáticamente
+            'descripcion_producto': forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly'}),
+            'paquetes': forms.TextInput(attrs={'class': 'form-control'}),
+            'unidades': forms.NumberInput(attrs={'class': 'form-control'}),
+            'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+    
+    def clean_producto_search(self):
+        # No validar este campo, es solo para búsqueda
+        return self.cleaned_data.get('producto_search', '')
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Agregar atributos al widget del campo producto_search
+        self.fields['producto_search'].widget.attrs.update({
+            'class': 'form-control producto-search-nota-ingreso',
+            'style': 'width: 100%;'
+        })
+        
+        # Si ya tiene un código, mostrar el producto en el campo de búsqueda
+        if self.instance and self.instance.codigo:
+            self.fields['producto_search'].initial = self.instance.codigo
+
+
+# Formset para manejar múltiples detalles de nota de ingreso
+NotaIngresoDetalleFormSet = forms.inlineformset_factory(
+    NotaIngresoProductoTerminado,
+    NotaIngresoDetalle,
+    form=NotaIngresoDetalleForm,
+    extra=1,
+    can_delete=True
+)
 
 
 # --- FORMULARIOS PARA CORTE DE BOBINA ---

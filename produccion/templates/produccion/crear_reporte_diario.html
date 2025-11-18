@@ -6,12 +6,81 @@
         <div class="card-body">
             <form method="POST">
                 {% csrf_token %}
-                {% for field in form %}
-                    <div class="mb-3">
-                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                        {{ field }}
+                
+                <h5>Información General</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.nombre_encargado.id_for_label }}" class="form-label">{{ form.nombre_encargado.label }}</label>
+                            {{ form.nombre_encargado }}
+                        </div>
                     </div>
-                {% endfor %}
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="{{ form.fecha.id_for_label }}" class="form-label">{{ form.fecha.label }}</label>
+                            {{ form.fecha }}
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="{{ form.turno.id_for_label }}" class="form-label">{{ form.turno.label }}</label>
+                            {{ form.turno }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.elaborado_por.id_for_label }}" class="form-label">{{ form.elaborado_por.label }}</label>
+                            {{ form.elaborado_por }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.revisado_por.id_for_label }}" class="form-label">{{ form.revisado_por.label }}</label>
+                            {{ form.revisado_por }}
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                <h5>Detalle de Productos</h5>
+                
+                {{ formset.management_form }}
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="formset-table">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Nombre del Producto</th>
+                                <th>Compaginado</th>
+                                <th>Doblado Libro</th>
+                                <th>Doblado Portada</th>
+                                <th>Engrapado</th>
+                                <th>Empacado</th>
+                                <th>Eliminar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for form in formset %}
+                            <tr class="formset-row">
+                                <td>{{ form.nombre_producto }}</td>
+                                <td>{{ form.compaginado }}</td>
+                                <td>{{ form.doblado_libro }}</td>
+                                <td>{{ form.doblado_portada }}</td>
+                                <td>{{ form.engrapado }}</td>
+                                <td>{{ form.empacado }}</td>
+                                <td>{{ form.DELETE }}</td>
+                                {{ form.id }}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <button type="button" class="btn btn-success mb-3" id="add-form">+ Añadir Fila</button>
+                
                 <hr>
                 <button type="submit" class="btn btn-primary">Guardar</button>
                 {% if form.instance.pk %}
@@ -21,4 +90,35 @@
             </form>
         </div>
     </div>
+
+    <script>
+        // Script para añadir filas dinámicamente al formset
+        document.getElementById('add-form').addEventListener('click', function() {
+            const formsetTable = document.getElementById('formset-table').getElementsByTagName('tbody')[0];
+            const totalForms = document.querySelector('[name$="TOTAL_FORMS"]');
+            const formNum = parseInt(totalForms.value);
+            
+            // Clonar la última fila
+            const lastRow = formsetTable.rows[formsetTable.rows.length - 1];
+            const newRow = lastRow.cloneNode(true);
+            
+            // Actualizar los índices en los campos del nuevo formulario
+            const formRegex = RegExp(`form-(\\d+)-`, 'g');
+            newRow.innerHTML = newRow.innerHTML.replace(formRegex, `form-${formNum}-`);
+            
+            // Limpiar los valores de los inputs
+            newRow.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
+                input.value = '';
+            });
+            newRow.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Añadir la nueva fila a la tabla
+            formsetTable.appendChild(newRow);
+            
+            // Incrementar el contador de formularios
+            totalForms.value = formNum + 1;
+        });
+    </script>
 {% endblock %}

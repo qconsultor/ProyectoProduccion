@@ -29,13 +29,13 @@
             position: fixed;
             top: 0;
             left: 0;
-            background-color: #212529;
+            /* Gradiente moderno: azul oscuro a morado oscuro */
+            background: linear-gradient(180deg, #1a1f3a 0%, #2d1b4e 50%, #1a1f3a 100%);
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3);
             color: white;
             padding: 1rem;
             z-index: 1030;
-            /* =========== LÍNEA AÑADIDA =========== */
-            overflow-y: auto; /* Permite el scroll si el contenido es muy largo */
-            /* ======================================= */
+            overflow-y: auto;
         }
         
         /* --- Wrapper para el contenido principal --- */
@@ -55,7 +55,7 @@
         
         /* --- Estilos para el menú Offcanvas (Móvil) --- */
         .offcanvas-sidebar {
-            background-color: #212529;
+            background: linear-gradient(180deg, #1a1f3a 0%, #2d1b4e 50%, #1a1f3a 100%);
             color: white;
         }
         

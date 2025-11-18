@@ -1,24 +1,200 @@
 {% extends 'produccion/base.html' %}
-{% block title %}{% if form.instance.pk %}Editar{% else %}Añadir{% endif %} Reporte Notas{% endblock %}
+{% block title %}{% if form.instance.pk %}Editar{% else %}Añadir{% endif %} Nota de Ingreso{% endblock %}
 {% block content %}
     <div class="card">
-        <div class="card-header"><h3>{% if form.instance.pk %}Editar{% else %}Añadir{% endif %} Reporte Notas</h3></div>
+        <div class="card-header"><h3>{% if form.instance.pk %}Editar{% else %}Añadir{% endif %} Nota de Ingreso de Producto Terminado</h3></div>
         <div class="card-body">
             <form method="POST">
                 {% csrf_token %}
-                {% for field in form %}
-                    <div class="mb-3">
-                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                        {{ field }}
+                
+                <h5>Información General</h5>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="{{ form.numero_nota.id_for_label }}" class="form-label">{{ form.numero_nota.label }}</label>
+                            {{ form.numero_nota }}
+                        </div>
                     </div>
-                {% endfor %}
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="{{ form.fecha.id_for_label }}" class="form-label">{{ form.fecha.label }}</label>
+                            {{ form.fecha }}
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="{{ form.elaborado_por.id_for_label }}" class="form-label">{{ form.elaborado_por.label }}</label>
+                            {{ form.elaborado_por }}
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="{{ form.recibido_por.id_for_label }}" class="form-label">{{ form.recibido_por.label }}</label>
+                            {{ form.recibido_por }}
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                <h5>Detalle de Productos</h5>
+                
+                {{ formset.management_form }}
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="formset-table">
+                        <thead class="table-primary">
+                            <tr>
+                                <th style="width: 30%;">Producto</th>
+                                <th style="width: 20%;">Descripción</th>
+                                <th style="width: 10%;">Paquetes</th>
+                                <th style="width: 10%;">Unidades</th>
+                                <th style="width: 20%;">Observaciones</th>
+                                <th style="width: 5%;">Eliminar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for form in formset %}
+                            <tr class="formset-row">
+                                <td>
+                                    {{ form.producto_search }}
+                                    {{ form.codigo }}
+                                </td>
+                                <td>{{ form.descripcion_producto }}</td>
+                                <td>{{ form.paquetes }}</td>
+                                <td>{{ form.unidades }}</td>
+                                <td>{{ form.observaciones }}</td>
+                                <td>{{ form.DELETE }}</td>
+                                {{ form.id }}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <button type="button" class="btn btn-success mb-3" id="add-form">+ Añadir Fila</button>
+                
                 <hr>
                 <button type="submit" class="btn btn-primary">Guardar</button>
                 {% if form.instance.pk %}
                 <a href="{% url 'produccion:eliminar_nota_ingreso' form.instance.pk %}" class="btn btn-danger">Eliminar</a>
                 {% endif %}
-                <a href="{% url 'produccion:lista_ordenes' %}" class="btn btn-secondary">Cancelar</a>
+                <a href="{% url 'produccion:lista_notas_ingreso' %}" class="btn btn-secondary">Cancelar</a>
             </form>
         </div>
     </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        $(document).ready(function() {
+            console.log("✅ Nota de Ingreso - Script cargado");
+            console.log("🔍 Select2 disponible:", typeof $.fn.select2);
+            
+            // Función para inicializar Select2 en un campo de producto
+            function initSelect2Producto(productoSelect) {
+                const $select = $(productoSelect);
+                
+                // Destruir Select2 previo si existe
+                if ($select.hasClass("select2-hidden-accessible")) {
+                    $select.select2('destroy');
+                }
+                
+                $select.select2({
+                    ajax: {
+                        url: "{% url 'produccion:buscar_productos_nota_ingreso_api' %}",
+                        dataType: 'json',
+                        delay: 250,
+                        data: function(params) {
+                            return {
+                                q: params.term
+                            };
+                        },
+                        processResults: function(data) {
+                            console.log("📥 Resultados recibidos:", data.results.length);
+                            return data;
+                        }
+                    },
+                    placeholder: 'Buscar producto...',
+                    allowClear: true,
+                    minimumInputLength: 1,
+                    width: '100%'
+                }).on('select2:select', function(e) {
+                    const data = e.params.data;
+                    console.log("✅ Producto seleccionado:", data);
+                    
+                    // Rellenar los campos correspondientes
+                    const row = $(this).closest('tr');
+                    row.find('input[name$="-codigo"]').val(data.codigo);
+                    row.find('input[name$="-descripcion_producto"]').val(data.nombre);
+                    
+                    // Enfocar el siguiente campo (paquetes)
+                    row.find('input[name$="-paquetes"]').focus();
+                });
+            }
+            
+            // Inicializar Select2 en todos los campos de producto existentes
+            const productosSelects = $('select.producto-search-nota-ingreso');
+            console.log("🔧 Campos de producto encontrados:", productosSelects.length);
+            
+            productosSelects.each(function(index) {
+                console.log(`📦 Inicializando producto #${index}:`, $(this).attr('id'));
+                initSelect2Producto(this);
+            });
+            
+            // Script para añadir filas dinámicamente al formset
+            document.getElementById('add-form').addEventListener('click', function() {
+                const formsetTable = document.getElementById('formset-table').getElementsByTagName('tbody')[0];
+                const totalForms = document.querySelector('[name$="TOTAL_FORMS"]');
+                const formNum = parseInt(totalForms.value);
+                
+                // Clonar la última fila
+                const lastRow = formsetTable.rows[formsetTable.rows.length - 1];
+                const newRow = lastRow.cloneNode(true);
+                
+                // Actualizar los índices en los campos del nuevo formulario
+                const formRegex = RegExp(`form-(\\d+)-`, 'g');
+                newRow.innerHTML = newRow.innerHTML.replace(formRegex, `form-${formNum}-`);
+                
+                // Limpiar los valores de los inputs
+                newRow.querySelectorAll('input[type="text"], input[type="number"], textarea').forEach(input => {
+                    input.value = '';
+                });
+                newRow.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                
+                // Añadir la nueva fila a la tabla
+                formsetTable.appendChild(newRow);
+                
+                // Inicializar Select2 en el nuevo campo de producto
+                const newProductoSelect = newRow.querySelector('select.producto-search-nota-ingreso');
+                if (newProductoSelect) {
+                    initSelect2Producto(newProductoSelect);
+                }
+                
+                // Incrementar el contador de formularios
+                totalForms.value = formNum + 1;
+            });
+            
+            // Sincronizar campos antes de enviar el formulario
+            $('form').on('submit', function(e) {
+                console.log("📤 Sincronizando campos antes de enviar...");
+                
+                // Para cada fila del formset
+                $('.formset-row').each(function() {
+                    const row = $(this);
+                    const productoSelect = row.find('select.producto-search-nota-ingreso');
+                    const codigoInput = row.find('input[name$="-codigo"]');
+                    
+                    // Si hay un producto seleccionado, copiar al campo codigo
+                    if (productoSelect.val()) {
+                        codigoInput.val(productoSelect.val());
+                        console.log("✅ Sincronizado:", productoSelect.val(), "→", codigoInput.attr('name'));
+                    }
+                });
+                
+                console.log("✅ Formulario listo para enviar");
+            });
+        });
+    </script>
 {% endblock %}
