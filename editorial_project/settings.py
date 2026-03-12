@@ -96,9 +96,9 @@ DATABASES = {
     'rq': {
         'ENGINE': 'mssql',
         'NAME': 'RQ', # La base de datos comercial
-        'USER': 'rq',       # Puede ser el mismo usuario u otro
+        'USER': 'qcon',       # Puede ser el mismo usuario u otro
         'PASSWORD': 'fuGvDyHxN9k8JyR',  # Puede ser la misma u otra
-        'HOST': '209.59.188.25,49156', # Probablemente el mismo host
+        'HOST': '50.28.69.44,49156', # Probablemente el mismo host
         'PORT': '1433',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
