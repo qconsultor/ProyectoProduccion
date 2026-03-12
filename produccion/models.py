@@ -178,6 +178,9 @@ class Producto(models.Model):
     cantidad = models.DecimalField(max_digits=10, decimal_places=2, default=0, db_column='cantidad')
     idsucursal = models.IntegerField(editable=False, db_column='idsucursal')
     venta = models.DecimalField(max_digits=10, decimal_places=2, default=0, db_column='venta')
+    
+    # Manager por defecto que filtra por idsucursal=10
+    objects = ProductoManager()
 
     class Meta:
         managed = False

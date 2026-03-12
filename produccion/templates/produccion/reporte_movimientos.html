@@ -9,7 +9,7 @@
     <!-- Formulario de Filtros -->
     <div class="card shadow-sm mb-4">
         <div class="card-body">
-            <form method="GET" action="{% url 'reporte_movimientos' %}" class="row g-3 align-items-end">
+            <form method="GET" action="{% url 'produccion:reporte_movimientos' %}" class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label for="fecha_desde" class="form-label">Desde:</label>
                     <input type="date" name="fecha_desde" id="fecha_desde" value="{{ fecha_desde_valor }}" class="form-control" required>
