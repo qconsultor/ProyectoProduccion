@@ -110,9 +110,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/select2.min.js' %}"></script>
-<link href="{% static 'css/select2.min.css' %}" rel="stylesheet" />
-
 <style>
     /* Estilos para tabla tipo Excel */
     #productos-table {
@@ -315,55 +312,11 @@ $(document).ready(function() {
     //aqui esta bien 
 
     // ==========================
-    // 🎯 FUNCIONALIDAD 1: Cuando seleccionas un cliente, cargar sus consignaciones pendientes
+    // 📦 FUNCIÓN PARA CARGAR DETALLE DE CONSIGNACIÓN
     // ==========================
-    $('#id_cliente_search_select2').on('select2:select', function (e) {
-        const clienteId = e.params.data.id;
-        console.log("🧾 Cliente seleccionado:", clienteId);
-        $('input[name="cliente_id"]').val(clienteId);
-
-        // Limpiar consignación y productos
-        const $consignacionSelect = $('#id_consignacion_select');
-        $consignacionSelect.empty().trigger('change');
-        $('#formset-container').empty();
-        updateTotal();
-
-        // Cargar consignaciones pendientes del cliente
-        $.ajax({
-            url: "{% url 'liquidacion:api_consignaciones_por_cliente' %}",
-            data: { cliente_id: clienteId },
-            dataType: 'json',
-            success: function(data) {
-                console.log("📋 Consignaciones encontradas:", data.results.length);
-                
-                if (data.results.length === 0) {
-                    alert('Este cliente no tiene consignaciones pendientes de liquidar.');
-                    return;
-                }
-
-                // Inicializar Select2 con las consignaciones
-                $consignacionSelect.select2({
-                    placeholder: "Seleccione una consignación...",
-                    data: data.results.map(item => ({
-                        id: item.id,
-                        text: `#${item.referencia} | ${item.fecha} | Pendiente: $${item.total_pendiente.toFixed(2)}`
-                    })),
-                    width: '100%'
-                });
-            },
-            error: function(xhr) {
-                console.error("❌ Error al cargar consignaciones:", xhr.responseText);
-                alert('Error al cargar las consignaciones del cliente.');
-            }
-        });
-    });
-
-    // ==========================
-    // 📦 FUNCIONALIDAD 2 y 3: Al seleccionar consignación → cargar productos pendientes con saldos
-    // ==========================
-    $('#id_consignacion_select').on('select2:select', function (e) {
-        const consignacionId = e.params.data.id;
-        console.log("📦 Consignación seleccionada:", consignacionId);
+    // Función reutilizable para cargar el detalle de una consignación
+    function cargarDetalleConsignacion(consignacionId) {
+        console.log("📦 Cargando consignación:", consignacionId);
 
         $.ajax({
             url: "{% url 'liquidacion:api_detalle_consignacion_pendiente' %}",
@@ -527,6 +480,116 @@ $(document).ready(function() {
             error: function(xhr) {
                 console.error("❌ Error al cargar detalle:", xhr.responseText);
                 alert('Error al cargar el detalle de la consignación.');
+            }
+        });
+    }
+
+    // ==========================
+    // 🎯 FUNCIONALIDAD 1: Cuando seleccionas un cliente, cargar sus consignaciones pendientes
+    // ==========================
+    $('#id_cliente_search_select2').on('select2:select', function (e) {
+        const clienteId = e.params.data.id;
+        console.log("🧾 Cliente seleccionado:", clienteId);
+        $('input[name="cliente_id"]').val(clienteId);
+
+        // Limpiar consignación y productos
+        const $consignacionSelect = $('#id_consignacion_select');
+        $consignacionSelect.empty().trigger('change');
+        $('#formset-container').empty();
+        updateTotal();
+
+        // Cargar consignaciones pendientes del cliente
+        $.ajax({
+            url: "{% url 'liquidacion:api_consignaciones_por_cliente' %}",
+            data: { cliente_id: clienteId },
+            dataType: 'json',
+            success: function(data) {
+                console.log("📋 Consignaciones encontradas:", data.results.length);
+                
+                if (data.results.length === 0) {
+                    alert('Este cliente no tiene consignaciones pendientes de liquidar.');
+                    return;
+                }
+
+                // Destruir Select2 previo si existe
+                if ($consignacionSelect.hasClass('select2-hidden-accessible')) {
+                    $consignacionSelect.select2('destroy');
+                }
+                
+                // Limpiar eventos previos
+                $consignacionSelect.off('select2:select change');
+                
+                // Inicializar Select2 con las consignaciones
+                $consignacionSelect.select2({
+                    placeholder: "Seleccione una consignación...",
+                    data: data.results.map(item => ({
+                        id: item.id,
+                        text: `#${item.referencia} | ${item.fecha} | Pendiente: $${item.total_pendiente.toFixed(2)}`
+                    })),
+                    width: '100%'
+                });
+                
+                // Variable para evitar cargas duplicadas
+                let ultimaConsignacionCargada = null;
+                
+                // Registrar interceptor cuando el dropdown se abre
+                $consignacionSelect.on('select2:open', function() {
+                    console.log("🔔 Dropdown abierto, registrando interceptor de clics");
+                    
+                    // Esperar a que el dropdown se renderice
+                    setTimeout(() => {
+                        $('.select2-results__option').off('mouseup').on('mouseup', function(e) {
+                            console.log("🔔 Clic detectado en opción del dropdown");
+                            
+                            // Esperar a que Select2 actualice el valor
+                            setTimeout(() => {
+                                const consignacionId = $consignacionSelect.val();
+                                console.log("🔔 Valor actual del select:", consignacionId);
+                                
+                                if (consignacionId && ultimaConsignacionCargada !== consignacionId) {
+                                    console.log("🔔 Cargando consignación - ID:", consignacionId);
+                                    ultimaConsignacionCargada = consignacionId;
+                                    cargarDetalleConsignacion(consignacionId);
+                                }
+                            }, 100);
+                        });
+                    }, 50);
+                });
+                
+                // Registrar eventos de Select2 como respaldo
+                $consignacionSelect.on('select2:select', function (e) {
+                    const consignacionId = e.params.data.id;
+                    console.log("🔔 Evento select2:select - ID:", consignacionId);
+                    if (ultimaConsignacionCargada !== consignacionId) {
+                        ultimaConsignacionCargada = consignacionId;
+                        cargarDetalleConsignacion(consignacionId);
+                    }
+                });
+                
+                $consignacionSelect.on('change', function (e) {
+                    const consignacionId = $(this).val();
+                    if (consignacionId && ultimaConsignacionCargada !== consignacionId) {
+                        console.log("🔔 Evento change - ID:", consignacionId);
+                        ultimaConsignacionCargada = consignacionId;
+                        cargarDetalleConsignacion(consignacionId);
+                    }
+                });
+                
+                console.log("✅ Select2 inicializado con interceptor de clics y eventos de respaldo");
+                
+                // Si solo hay una consignación, seleccionarla automáticamente
+                if (data.results.length === 1) {
+                    setTimeout(() => {
+                        const consignacionId = data.results[0].id;
+                        $consignacionSelect.val(consignacionId);
+                        ultimaConsignacionCargada = consignacionId;
+                        cargarDetalleConsignacion(consignacionId);
+                    }, 100);
+                }
+            },
+            error: function(xhr) {
+                console.error("❌ Error al cargar consignaciones:", xhr.responseText);
+                alert('Error al cargar las consignaciones del cliente.');
             }
         });
     });

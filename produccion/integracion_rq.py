@@ -111,7 +111,7 @@ def insertar_prefactura_rq(liquidacion):
             if detalle.cantidad_vendida > 0:  # Solo productos vendidos
                 detalle_data = {
                     'idprefactura': prefactura_id,
-                    'codigo': str(detalle.producto_id).ljust(30),  # nchar(30)
+                    'idproducto': int(detalle.producto_id),  # int - cambio ERP SIA empresa=10
                     'bodega': '10 ',  # nchar(3) - sucursal 10
                     'cantidad': float(detalle.cantidad_vendida),
                     'tipoprecio': 'PRECIO1        ',  # nchar(15)
@@ -233,12 +233,12 @@ def insertar_detalle_prefactura(data):
         with connections['rq'].cursor() as cursor:
             sql = f"""
                 INSERT INTO [dbo].[prefactura_detalle] (
-                    idprefactura, codigo, bodega, cantidad, tipoprecio, precio,
+                    idprefactura, idproducto, bodega, cantidad, tipoprecio, precio,
                     nivel, estante, averia, precionuevo, fechaingreso, nomPro,
                     caja, nosujeta, precions
                 )
                 VALUES (
-                    {sql_escape(data['idprefactura'])}, {sql_escape(data['codigo'])}, 
+                    {sql_escape(data['idprefactura'])}, {sql_escape(data['idproducto'])}, 
                     {sql_escape(data['bodega'])}, {sql_escape(data['cantidad'])}, 
                     {sql_escape(data['tipoprecio'])}, {sql_escape(data['precio'])},
                     {sql_escape(data['nivel'])}, {sql_escape(data['estante'])}, 
