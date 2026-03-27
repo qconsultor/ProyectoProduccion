@@ -91,7 +91,7 @@ def insertar_prefactura_rq(liquidacion):
             'codDepto': cliente.get('codDepto'),
             'codMuni': cliente.get('codMuni'),
             'correo': cliente.get('correo'),
-            'exenta': 0,
+            'exenta': 1,  # Empresa sucursal 10 exenta del IVA
             'retencion': 0,
             'renta': 0,
             'referencia': str(liquidacion.referencia)
